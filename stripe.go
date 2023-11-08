@@ -44,8 +44,6 @@ func NewStripeProvider(cfg *StripeConfig) *StripeService {
 
 	stripe.Key = cfg.Key
 
-	// void subscriptions
-
 	return &StripeService{
 		cfg:                cfg,
 		subAddCallback:     func(*Subscription) {},
@@ -168,7 +166,6 @@ func (s *StripeService) VerifyCheckout(sessionID string) error {
 }
 
 func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
-	// search up by email
 	cust, err := s.AddCustomer(req.UserID, req.Name, req.Email)
 
 	if errors.Is(err, ErrNotFound) {
@@ -209,7 +206,7 @@ func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
 		PaymentMethodCollection: stripe.String("if_required"),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				Price:    stripe.String(prod.DefaultPrice.ID), // uh oh
+				Price:    stripe.String(prod.DefaultPrice.ID),
 				Quantity: stripe.Int64(1),
 			},
 		},
