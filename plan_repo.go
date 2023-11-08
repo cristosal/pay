@@ -28,6 +28,7 @@ func (r *PlanPgxRepo) Init() error {
 		provider varchar(255) not null,
 		provider_id varchar(255) not null,
 		active bool not null,
+		trial_days int not null default 0,
 		price int not null
 	)`)
 }

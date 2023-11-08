@@ -1,6 +1,10 @@
 package pay
 
-import "github.com/cristosal/pgxx"
+import (
+	"time"
+
+	"github.com/cristosal/pgxx"
+)
 
 type Plan struct {
 	ID         pgxx.ID `db:"id"`
@@ -9,6 +13,17 @@ type Plan struct {
 	Name       string  `db:"name"`
 	Active     bool    `db:"active"` // or not but should be active
 	Price      int64   `db:"price"`  // monthly price
+	TrialDays  int64   `db:"trial_days"`
+}
+
+// HasTrial returns true if plan has a set amount of trial days
+func (p *Plan) HasTrial() bool {
+	return p.TrialDays > 0
+}
+
+// TrialEnd returns the time at which the trial would end if it started now
+func (p *Plan) TrialEnd() time.Time {
+	return time.Now().Add(time.Hour * 24 * time.Duration(p.TrialDays))
 }
 
 func (p *Plan) DisplayPrice() float64 {

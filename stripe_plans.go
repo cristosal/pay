@@ -2,6 +2,7 @@ package pay
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/product"
@@ -48,12 +49,16 @@ func (s *StripeService) fetchPlans() ([]Plan, error) {
 		if p.DefaultPrice == nil {
 			continue
 		}
+
+		days, _ := strconv.ParseInt(p.Metadata["trial_days"], 10, 32)
+
 		plans = append(plans, Plan{
 			ProviderID: p.ID,
 			Provider:   StripeProvider,
 			Name:       p.Name,
 			Active:     p.Active,
 			Price:      p.DefaultPrice.UnitAmount,
+			TrialDays:  days,
 		})
 	}
 

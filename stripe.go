@@ -192,6 +192,12 @@ func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
 		return "", ErrNoPlan
 	}
 
+	var trialEnd *int64 = nil
+
+	if pl.TrialDays > 0 {
+		trialEnd = stripe.Int64(pl.TrialEnd().Unix())
+	}
+
 	params := &stripe.CheckoutSessionParams{
 		Customer:                stripe.String(cust.ProviderID),
 		SuccessURL:              stripe.String(req.RedirectURL),
@@ -205,6 +211,7 @@ func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
 			},
 		},
 		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
+			TrialEnd: trialEnd,
 			Metadata: map[string]string{
 				"user_id": req.UserID.String(),
 			},
