@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/cristosal/pgxx"
 	"github.com/jackc/pgx/v5"
@@ -195,7 +196,9 @@ func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
 	var trialEnd *int64 = nil
 
 	if pl.TrialDays > 0 {
-		trialEnd = stripe.Int64(pl.TrialEnd().Unix())
+		// we add one day of grace so that stripe displays the correct amount.
+		// since trial end is calculated from current time, being one second off will result in days -1 being displayed in stripe checkout
+		trialEnd = stripe.Int64(pl.TrialEnd().Add(time.Hour * 24).Unix())
 	}
 
 	params := &stripe.CheckoutSessionParams{
