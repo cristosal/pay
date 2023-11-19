@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/cristosal/pgxx"
+	"github.com/cristosal/dbx"
 	"github.com/jackc/pgx/v5"
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/customer"
@@ -12,7 +12,7 @@ import (
 
 // AddCustomer creates a customer in Stripe and inserts it into the repo.
 // If a customer with given email already exists, the user id is assigned to the customer.
-func (s *StripeService) AddCustomer(uid pgxx.ID, name, email string) (*Customer, error) {
+func (s *StripeService) AddCustomer(uid dbx.ID, name, email string) (*Customer, error) {
 	c, err := s.Customers().ByEmail(email)
 
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -67,7 +67,7 @@ func (s *StripeService) syncCustomers() error {
 }
 
 // creates customer in stripe as part of checkout session logic
-func (s *StripeService) createCustomer(uid pgxx.ID, name, email string) (*Customer, error) {
+func (s *StripeService) createCustomer(uid dbx.ID, name, email string) (*Customer, error) {
 	cust, err := customer.New(&stripe.CustomerParams{
 		Email: stripe.String(email),
 		Name:  stripe.String(name),

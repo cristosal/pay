@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/cristosal/dbx"
 	"github.com/cristosal/pgxx"
 )
 
@@ -27,10 +28,10 @@ type Provider interface {
 
 // CheckoutRequest
 type CheckoutRequest struct {
-	UserID      pgxx.ID `json:"user_id"`
-	Plan        string  `json:"plan_id"`
-	Name        string  `json:"name"`
-	Email       string  `json:"email"`
-	Phone       string  `json:"phone"`
-	RedirectURL string  `json:"redirect_url"`
+	UserID      dbx.ID `json:"user_id"`
+	Plan        string `json:"plan_id"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	Phone       string `json:"phone"`
+	RedirectURL string `json:"redirect_url"`
 }

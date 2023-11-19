@@ -1,17 +1,16 @@
 package pay_test
 
 import (
-	"context"
+	"database/sql"
 	"os"
 	"testing"
 
 	"github.com/cristosal/pay"
-	"github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func NewStripeService(t *testing.T) *pay.StripeService {
-	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, os.Getenv("CONNECTION_STRING"))
+	conn, err := sql.Open("pgx", os.Getenv("CONNECTION_STRING"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,7 +18,7 @@ func NewStripeService(t *testing.T) *pay.StripeService {
 	s := pay.NewStripeProvider(&pay.StripeConfig{
 		Key:              os.Getenv("STRIPE_API_KEY"),
 		CustomerRepo:     pay.NewCustomerPgxRepo(conn),
-		PlanRepo:         pay.NewPlanPgxRepo(conn),
+		PlanRepo:         pay.NewPlanRepo(conn),
 		SubscriptionRepo: pay.NewSubscriptionPgxRepo(conn),
 	})
 

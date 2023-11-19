@@ -1,12 +1,13 @@
 package pay
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
-	"github.com/cristosal/pgxx"
+	"github.com/cristosal/dbx"
 	"github.com/jackc/pgx/v5"
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/checkout/session"
@@ -20,12 +21,10 @@ var ErrCheckoutFailed = errors.New("checkout failed")
 type (
 	// StripeConfig configures StripeService with necessary credentials and callbacks
 	StripeConfig struct {
-		CustomerRepo
-		PlanRepo
-		SubscriptionRepo
-		StripeEventRepo
-		Key           string
-		WebhookSecret string
+		EntityRepo      *Repo
+		StripeEventRepo *StripeEventRepo
+		Key             string
+		WebhookSecret   string
 	}
 
 	// StripeService interfaces with stripe for customer, plan and subscription data
@@ -52,20 +51,20 @@ func NewStripeProvider(cfg *StripeConfig) *StripeService {
 }
 
 // Init creates tables and syncs data
-func (s *StripeService) Init() error {
-	if err := s.Customers().Init(); err != nil {
+func (s *StripeService) Init(ctx context.Context) error {
+	if err := s.Customers().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing customers: %w", err)
 	}
 
-	if err := s.Plans().Init(); err != nil {
+	if err := s.Plans().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing plans: %w", err)
 	}
 
-	if err := s.Subscriptions().Init(); err != nil {
+	if err := s.Subscriptions().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing subscriptions: %w", err)
 	}
 
-	if err := s.EventRepo().Init(); err != nil {
+	if err := s.EventRepo().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing stripe event store: %w", err)
 	}
 
@@ -93,22 +92,22 @@ func (s *StripeService) Sync() error {
 	return nil
 }
 
-func (s *StripeService) EventRepo() StripeEventRepo {
+func (s *StripeService) EventRepo() *StripeEventRepo {
 	return s.cfg.StripeEventRepo
 }
 
 // Customers returns the underlying customer repo
-func (s *StripeService) Customers() CustomerRepo {
+func (s *StripeService) Customers() *CustomerRepo {
 	return s.cfg.CustomerRepo
 }
 
 // Plans returns the underlying plan repo
-func (s *StripeService) Plans() PlanRepo {
+func (s *StripeService) Plans() *PlanRepo {
 	return s.cfg.PlanRepo
 }
 
 // Plans returns the underlying plan repo
-func (s *StripeService) Subscriptions() SubscriptionRepo {
+func (s *StripeService) Subscriptions() *SubscriptionRepo {
 	return s.cfg.SubscriptionRepo
 }
 
@@ -125,7 +124,7 @@ func (s *StripeService) ListPlans() ([]Plan, error) {
 }
 
 // CurrentUserPlan returns the current active plan for a given user
-func (s *StripeService) PlanByUser(uid pgxx.ID) (*Plan, error) {
+func (s *StripeService) PlanByUser(uid dbx.ID) (*Plan, error) {
 	cust, err := s.Customers().ByUserID(uid)
 	if err != nil {
 		return nil, ErrNoPlan
