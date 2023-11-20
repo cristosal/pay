@@ -2,12 +2,10 @@ package pay
 
 import (
 	"time"
-
-	"github.com/cristosal/dbx"
 )
 
 type Plan struct {
-	ID         dbx.ID `db:"id"`
+	ID         int64  `db:"id"`
 	ProviderID string `db:"provider_id"`
 	Provider   string `db:"provider"`
 	Name       string `db:"name"`

@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cristosal/dbx"
 	"github.com/jackc/pgx/v5"
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/checkout/session"
@@ -52,16 +51,8 @@ func NewStripeProvider(cfg *StripeConfig) *StripeService {
 
 // Init creates tables and syncs data
 func (s *StripeService) Init(ctx context.Context) error {
-	if err := s.Customers().Init(ctx); err != nil {
+	if err := s.Repo().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing customers: %w", err)
-	}
-
-	if err := s.Plans().Init(ctx); err != nil {
-		return fmt.Errorf("error initializing plans: %w", err)
-	}
-
-	if err := s.Subscriptions().Init(ctx); err != nil {
-		return fmt.Errorf("error initializing subscriptions: %w", err)
 	}
 
 	if err := s.EventRepo().Init(ctx); err != nil {
@@ -97,18 +88,8 @@ func (s *StripeService) EventRepo() *StripeEventRepo {
 }
 
 // Customers returns the underlying customer repo
-func (s *StripeService) Customers() *CustomerRepo {
-	return s.cfg.CustomerRepo
-}
-
-// Plans returns the underlying plan repo
-func (s *StripeService) Plans() *PlanRepo {
-	return s.cfg.PlanRepo
-}
-
-// Plans returns the underlying plan repo
-func (s *StripeService) Subscriptions() *SubscriptionRepo {
-	return s.cfg.SubscriptionRepo
+func (s *StripeService) Repo() *Repo {
+	return s.cfg.EntityRepo
 }
 
 func (s *StripeService) OnSubscriptionAdded(fn func(*Subscription)) {
@@ -120,34 +101,7 @@ func (s *StripeService) OnSubscriptionUpdated(fn func(*Subscription)) {
 }
 
 func (s *StripeService) ListPlans() ([]Plan, error) {
-	return s.Plans().List()
-}
-
-// CurrentUserPlan returns the current active plan for a given user
-func (s *StripeService) PlanByUser(uid dbx.ID) (*Plan, error) {
-	cust, err := s.Customers().ByUserID(uid)
-	if err != nil {
-		return nil, ErrNoPlan
-	}
-
-	subs, err := s.Subscriptions().ByCustomerID(cust.ID)
-	if err != nil {
-		return nil, ErrNoPlan
-	}
-
-	var sub *Subscription
-	for i := range subs {
-		if subs[i].Active {
-			sub = &subs[i]
-			break
-		}
-	}
-
-	if sub == nil || !sub.Active {
-		return nil, ErrNoPlan
-	}
-
-	return s.Plans().ByID(sub.PlanID)
+	return s.Repo().ListPlans()
 }
 
 // Verify that the checkout was completed
@@ -165,7 +119,7 @@ func (s *StripeService) VerifyCheckout(sessionID string) error {
 }
 
 func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
-	cust, err := s.AddCustomer(req.UserID, req.Name, req.Email)
+	cust, err := s.AddCustomer(req.Name, req.Email)
 
 	if errors.Is(err, ErrNotFound) {
 		err = nil
@@ -175,7 +129,7 @@ func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
 		return
 	}
 
-	pl, err := s.Plans().ByName(req.Plan)
+	pl, err := s.Repo().PlanByName(req.Plan)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNoPlan
 	}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/cristosal/dbx"
 	"github.com/jackc/pgx/v5"
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/customer"
@@ -12,11 +11,11 @@ import (
 
 // AddCustomer creates a customer in Stripe and inserts it into the repo.
 // If a customer with given email already exists, the user id is assigned to the customer.
-func (s *StripeService) AddCustomer(uid dbx.ID, name, email string) (*Customer, error) {
-	c, err := s.Customers().ByEmail(email)
+func (s *StripeService) AddCustomer(name, email string) (*Customer, error) {
+	c, err := s.Repo().CustomerByEmail(email)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return s.createCustomer(uid, name, email)
+		return s.createCustomer(name, email)
 	}
 
 	// otherwise we got another err
@@ -24,8 +23,7 @@ func (s *StripeService) AddCustomer(uid dbx.ID, name, email string) (*Customer, 
 		return nil, err
 	}
 
-	c.UserID = &uid
-	if err := s.Customers().Update(c); err != nil {
+	if err := s.Repo().UpdateCustomerByID(c); err != nil {
 		return nil, err
 	}
 
@@ -44,10 +42,10 @@ func (s *StripeService) syncCustomers() error {
 			Email:      cust.Email,
 		}
 
-		found, _ := s.Customers().ByProviderID(cust.ID)
+		found, _ := s.Repo().CustomerByProviderID(cust.ID)
 
 		if found == nil {
-			s.Customers().Add(c)
+			s.Repo().AddCustomer(c)
 			continue
 		}
 
@@ -55,7 +53,7 @@ func (s *StripeService) syncCustomers() error {
 		// avoid db queries and check if we really have to update the customer
 		// we can only change email or name from stripe portal all other fields are internal
 		if c.Email != found.Email || c.Name != found.Name {
-			s.Customers().Update(c)
+			s.Repo().UpdateCustomerByID(c)
 		}
 	}
 
@@ -67,7 +65,7 @@ func (s *StripeService) syncCustomers() error {
 }
 
 // creates customer in stripe as part of checkout session logic
-func (s *StripeService) createCustomer(uid dbx.ID, name, email string) (*Customer, error) {
+func (s *StripeService) createCustomer(name, email string) (*Customer, error) {
 	cust, err := customer.New(&stripe.CustomerParams{
 		Email: stripe.String(email),
 		Name:  stripe.String(name),
@@ -78,14 +76,13 @@ func (s *StripeService) createCustomer(uid dbx.ID, name, email string) (*Custome
 	}
 
 	c := &Customer{
-		UserID:     &uid,
 		Provider:   StripeProvider,
 		ProviderID: cust.ID,
 		Name:       name,
 		Email:      email,
 	}
 
-	if err := s.Customers().Add(c); err != nil {
+	if err := s.Repo().AddCustomer(c); err != nil {
 		return nil, err
 	}
 
@@ -98,5 +95,5 @@ func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
 		return err
 	}
 
-	return s.Customers().RemoveByProviderID(c.ID)
+	return s.Repo().RemoveCustomersByProviderID(c.ID)
 }

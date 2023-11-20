@@ -9,14 +9,14 @@ import (
 )
 
 // Repo contains methods for storing entities within an sql database
-type Repo struct{ *sql.DB }
+type Repo struct{ db *sql.DB }
 
 // NewRepo is a constructor for *Repo
 func NewRepo(db *sql.DB) *Repo { return &Repo{db} }
 
 // Init creates the required tables and migrations for entities
 func (r *Repo) Init(ctx context.Context) error {
-	m := migra.New(r.DB)
+	m := migra.New(r.db)
 
 	m.SetMigrationsTable("pay_migrations")
 
@@ -74,7 +74,15 @@ func (r *Repo) Init(ctx context.Context) error {
 
 func (r *Repo) CustomerByID(id int64) (*Customer, error) {
 	var c Customer
-	if err := dbx.One(r, &c, "WHERE id = $1", id); err != nil {
+	if err := dbx.One(r.db, &c, "WHERE id = $1", id); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (r *Repo) CustomerByEmail(email string) (*Customer, error) {
+	var c Customer
+	if err := dbx.One(r.db, &c, "WHERE email = $1", email); err != nil {
 		return nil, err
 	}
 	return &c, nil
@@ -82,7 +90,7 @@ func (r *Repo) CustomerByID(id int64) (*Customer, error) {
 
 func (r *Repo) CustomerByProviderID(id string) (*Customer, error) {
 	var c Customer
-	if err := dbx.One(r, &c, "WHERE provider_id = $1", id); err != nil {
+	if err := dbx.One(r.db, &c, "WHERE provider_id = $1", id); err != nil {
 		return nil, err
 	}
 
@@ -90,20 +98,20 @@ func (r *Repo) CustomerByProviderID(id string) (*Customer, error) {
 }
 
 func (r *Repo) UpdateCustomerByID(c *Customer) error {
-	return dbx.Update(r, c)
+	return dbx.Update(r.db, c)
 }
 
 func (r *Repo) AddCustomer(c *Customer) error {
-	return dbx.Insert(r, c)
+	return dbx.Insert(r.db, c)
 }
 
 func (r *Repo) RemoveCustomersByProviderID(providerID string) error {
-	return dbx.Exec(r, "DELETE FROM customer WHERE provider_id = $1", providerID)
+	return dbx.Exec(r.db, "DELETE FROM customer WHERE provider_id = $1", providerID)
 }
 
 func (r *Repo) ListPlans() ([]Plan, error) {
 	var plans []Plan
-	if err := dbx.Many(r, &plans, "WHERE active = true ORDER BY price ASC"); err != nil {
+	if err := dbx.Many(r.db, &plans, "WHERE active = true ORDER BY price ASC"); err != nil {
 		return nil, err
 	}
 
@@ -111,20 +119,20 @@ func (r *Repo) ListPlans() ([]Plan, error) {
 }
 
 func (r *Repo) AddPlan(p *Plan) error {
-	return dbx.Insert(r, p)
+	return dbx.Insert(r.db, p)
 }
 
 func (r *Repo) RemovePlanByProviderID(providerID string) error {
-	return dbx.Exec(r, "DELETE FROM plan WHERE provider_id = $1", providerID)
+	return dbx.Exec(r.db, "DELETE FROM plan WHERE provider_id = $1", providerID)
 }
 
 func (r *Repo) UpdatePlanByID(p *Plan) error {
-	return dbx.Update(r, p)
+	return dbx.Update(r.db, p)
 }
 
 func (r *Repo) PlanByID(id int64) (*Plan, error) {
 	var p Plan
-	if err := dbx.One(r, &p, "where id = $1", id); err != nil {
+	if err := dbx.One(r.db, &p, "where id = $1", id); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -132,7 +140,7 @@ func (r *Repo) PlanByID(id int64) (*Plan, error) {
 
 func (r *Repo) PlanByProviderID(providerID string) (*Plan, error) {
 	var p Plan
-	if err := dbx.One(r, &p, "where provider_id = $1", providerID); err != nil {
+	if err := dbx.One(r.db, &p, "where provider_id = $1", providerID); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -140,7 +148,7 @@ func (r *Repo) PlanByProviderID(providerID string) (*Plan, error) {
 
 func (r *Repo) PlanByName(name string) (*Plan, error) {
 	var p Plan
-	if err := dbx.One(r, &p, "where name = $1", name); err != nil {
+	if err := dbx.One(r.db, &p, "where name = $1", name); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -161,7 +169,7 @@ func (r *Repo) PlanByEmail(email string) (*Plan, error) {
 	`
 
 	var p Plan
-	if err := dbx.QueryRow(r.DB, &p, sql, email); err != nil {
+	if err := dbx.QueryRow(r.db, &p, sql, email); err != nil {
 		return nil, err
 	}
 
@@ -169,20 +177,20 @@ func (r *Repo) PlanByEmail(email string) (*Plan, error) {
 }
 
 func (r *Repo) AddSubscription(s *Subscription) error {
-	return dbx.Insert(r, s)
+	return dbx.Insert(r.db, s)
 }
 
 func (r *Repo) UpdateSubscriptionByID(s *Subscription) error {
-	return dbx.Update(r, s)
+	return dbx.Update(r.db, s)
 }
 
 func (r *Repo) RemoveSubscriptionByProviderID(providerID string) error {
-	return dbx.Exec(r, "delete from subscription where provider_id = $1", providerID)
+	return dbx.Exec(r.db, "delete from subscription where provider_id = $1", providerID)
 }
 
 func (r *Repo) SubscriptionByCustomerID(customerID int64) ([]Subscription, error) {
 	var s []Subscription
-	if err := dbx.Many(r, &s, "where customer_id = $1", customerID); err != nil {
+	if err := dbx.Many(r.db, &s, "where customer_id = $1", customerID); err != nil {
 		return nil, err
 	}
 	return s, nil
@@ -190,7 +198,7 @@ func (r *Repo) SubscriptionByCustomerID(customerID int64) ([]Subscription, error
 
 func (r *Repo) SubscriptionByPlanID(planID int64) (*Subscription, error) {
 	var s Subscription
-	if err := dbx.One(r, &s, "where plan_id = $1", planID); err != nil {
+	if err := dbx.One(r.db, &s, "where plan_id = $1", planID); err != nil {
 		return nil, err
 	}
 
@@ -199,7 +207,7 @@ func (r *Repo) SubscriptionByPlanID(planID int64) (*Subscription, error) {
 
 func (r *Repo) SubscriptionByProviderID(providerID string) (*Subscription, error) {
 	var s Subscription
-	if err := dbx.One(r, &s, "where provider_id = $1", providerID); err != nil {
+	if err := dbx.One(r.db, &s, "where provider_id = $1", providerID); err != nil {
 		return nil, err
 	}
 

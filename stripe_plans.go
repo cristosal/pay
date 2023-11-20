@@ -16,10 +16,10 @@ func (s *StripeService) syncPlans() error {
 
 	for _, p := range plans {
 		// check if we have it
-		found, _ := s.Plans().ByProviderID(p.ProviderID)
+		found, _ := s.Repo().PlanByProviderID(p.ProviderID)
 
 		if found == nil {
-			if err := s.Plans().Add(&p); err != nil {
+			if err := s.Repo().AddPlan(&p); err != nil {
 				log.Printf("error adding plan during sync: %v", err)
 			}
 
@@ -28,7 +28,7 @@ func (s *StripeService) syncPlans() error {
 		}
 
 		p.ID = found.ID
-		if err := s.Plans().Update(&p); err != nil {
+		if err := s.Repo().UpdatePlanByID(&p); err != nil {
 			log.Printf("error updating plan during sync: %v", err)
 		}
 	}
