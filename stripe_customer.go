@@ -10,9 +10,8 @@ import (
 )
 
 // AddCustomer creates a customer in Stripe and inserts it into the repo.
-// If a customer with given email already exists, the user id is assigned to the customer.
 func (s *StripeService) AddCustomer(name, email string) (*Customer, error) {
-	c, err := s.Repo().CustomerByEmail(email)
+	c, err := s.Repository().GetCustomerByEmail(email)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return s.createCustomer(name, email)
@@ -23,16 +22,17 @@ func (s *StripeService) AddCustomer(name, email string) (*Customer, error) {
 		return nil, err
 	}
 
-	if err := s.Repo().UpdateCustomerByID(c); err != nil {
+	if err := s.Repository().UpdateCustomerByID(c); err != nil {
 		return nil, err
 	}
 
 	return c, nil
 }
 
-// syncCustomers pulls all customers from stripe and adds or updates them in the repo
-func (s *StripeService) syncCustomers() error {
+// SyncCustomers pulls all customers from stripe and upserts them in the repository
+func (s *StripeService) SyncCustomers() error {
 	it := customer.List(nil)
+
 	for it.Next() {
 		cust := it.Customer()
 		c := &Customer{
@@ -42,10 +42,10 @@ func (s *StripeService) syncCustomers() error {
 			Email:      cust.Email,
 		}
 
-		found, _ := s.Repo().CustomerByProviderID(cust.ID)
+		found, _ := s.Repository().GetCustomerByProvider(StripeProvider, cust.ID)
 
 		if found == nil {
-			s.Repo().AddCustomer(c)
+			s.Repository().AddCustomer(c)
 			continue
 		}
 
@@ -53,7 +53,7 @@ func (s *StripeService) syncCustomers() error {
 		// avoid db queries and check if we really have to update the customer
 		// we can only change email or name from stripe portal all other fields are internal
 		if c.Email != found.Email || c.Name != found.Name {
-			s.Repo().UpdateCustomerByID(c)
+			s.Repository().UpdateCustomerByID(c)
 		}
 	}
 
@@ -82,18 +82,19 @@ func (s *StripeService) createCustomer(name, email string) (*Customer, error) {
 		Email:      email,
 	}
 
-	if err := s.Repo().AddCustomer(c); err != nil {
+	if err := s.Repository().AddCustomer(c); err != nil {
 		return nil, err
 	}
 
 	return c, nil
 }
 
+// handler for when a customer is deleted from stripe
 func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
 	var c stripe.Customer
 	if err := json.Unmarshal(data.Raw, &c); err != nil {
 		return err
 	}
 
-	return s.Repo().RemoveCustomersByProviderID(c.ID)
+	return s.Repository().RemoveCustomerByProviderID(c.ID)
 }

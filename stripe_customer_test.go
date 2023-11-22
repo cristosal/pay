@@ -17,7 +17,7 @@ func NewStripeService(t *testing.T) *pay.StripeService {
 
 	s := pay.NewStripeProvider(&pay.StripeConfig{
 		Key:        os.Getenv("STRIPE_API_KEY"),
-		EntityRepo: pay.NewRepo(db),
+		EntityRepo: pay.NewEntityRepo(db),
 	})
 
 	return s
@@ -25,7 +25,7 @@ func NewStripeService(t *testing.T) *pay.StripeService {
 
 func TestListingCustomerSubscriptions(t *testing.T) {
 	ss := NewStripeService(t)
-	cust, err := ss.Repo().CustomerByEmail("admin@cibera.com.mx")
+	cust, err := ss.Repository().GetCustomerByEmail("admin@cibera.com.mx")
 	if err != nil {
 		t.Fatal(err)
 	}

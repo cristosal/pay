@@ -8,15 +8,17 @@ import (
 	"github.com/stripe/stripe-go/v74"
 )
 
-type StripeEventRepo struct{ *sql.DB }
+type StripeEventRepo struct {
+	db *sql.DB
+}
 
-func NewStripeEventPgxRepo(db *sql.DB) *StripeEventRepo {
+func NewStripeEventRepo(db *sql.DB) *StripeEventRepo {
 	return &StripeEventRepo{db}
 }
 
-// Init initializes events
+// Init table and migrations
 func (s *StripeEventRepo) Init(ctx context.Context) error {
-	m := migra.New(s.DB).SetMigrationsTable("pay_migrations")
+	m := migra.New(s.db).SetMigrationsTable("pay_migrations")
 
 	if err := m.Init(ctx); err != nil {
 		return err
@@ -40,13 +42,13 @@ func (s *StripeEventRepo) Init(ctx context.Context) error {
 // Has true if we have already stored the event
 func (r *StripeEventRepo) Has(ev *stripe.Event) bool {
 	var id string
-	row := r.QueryRow("SELECT event_id FROM stripe_events WHERE event_id = $1")
+	row := r.db.QueryRow("SELECT event_id FROM stripe_events WHERE event_id = $1")
 	_ = row.Scan(&id)
 	return id != ""
 }
 
 // Add inserts the event in the store
 func (r *StripeEventRepo) Add(ev *stripe.Event) error {
-	_, err := r.Exec("insert into stripe_events (event_id, event_type, payload) values ($1, $2, $3)", ev.ID, ev.Type, ev.Data)
+	_, err := r.db.Exec("insert into stripe_events (event_id, event_type, payload) values ($1, $2, $3)", ev.ID, ev.Type, ev.Data)
 	return err
 }

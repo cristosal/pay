@@ -24,7 +24,7 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 				"product.created",
 				"product.updated",
 				"product.deleted":
-				err = s.syncPlans() // resync plans
+				err = s.SyncPlans() // resync plans
 			case "customer.deleted":
 				err = s.handleCustomerDeleted(event.Data)
 			case "customer.subscription.created",
@@ -60,13 +60,13 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 			return
 		}
 
-		if s.EventRepo().Has(&event) {
+		if s.Events().Has(&event) {
 			log.Printf("Already processed event with id %s", event.ID)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		if err := s.EventRepo().Add(&event); err != nil {
+		if err := s.Events().Add(&event); err != nil {
 			log.Printf("error while saving stripe event: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

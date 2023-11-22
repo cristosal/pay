@@ -51,11 +51,11 @@ func NewStripeProvider(cfg *StripeConfig) *StripeService {
 
 // Init creates tables and syncs data
 func (s *StripeService) Init(ctx context.Context) error {
-	if err := s.Repo().Init(ctx); err != nil {
+	if err := s.Repository().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing customers: %w", err)
 	}
 
-	if err := s.EventRepo().Init(ctx); err != nil {
+	if err := s.Events().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing stripe event store: %w", err)
 	}
 
@@ -68,27 +68,27 @@ func (s *StripeService) Init(ctx context.Context) error {
 
 // Sync data with stripe
 func (s *StripeService) Sync() error {
-	if err := s.syncCustomers(); err != nil {
+	if err := s.SyncCustomers(); err != nil {
 		return fmt.Errorf("error syncing customers: %w", err)
 	}
 
-	if err := s.syncPlans(); err != nil {
+	if err := s.SyncPlans(); err != nil {
 		return fmt.Errorf("error syncing plans: %w", err)
 	}
 
-	if err := s.syncSubscriptions(); err != nil {
+	if err := s.SyncSubscriptions(); err != nil {
 		return fmt.Errorf("error syncing subscriptions: %w", err)
 	}
 
 	return nil
 }
 
-func (s *StripeService) EventRepo() *StripeEventRepo {
+func (s *StripeService) Events() *StripeEventRepo {
 	return s.cfg.StripeEventRepo
 }
 
 // Customers returns the underlying customer repo
-func (s *StripeService) Repo() *Repo {
+func (s *StripeService) Repository() *Repo {
 	return s.cfg.EntityRepo
 }
 
@@ -98,10 +98,6 @@ func (s *StripeService) OnSubscriptionAdded(fn func(*Subscription)) {
 
 func (s *StripeService) OnSubscriptionUpdated(fn func(*Subscription)) {
 	s.subUpdatedCallback = fn
-}
-
-func (s *StripeService) ListPlans() ([]Plan, error) {
-	return s.Repo().ListPlans()
 }
 
 // Verify that the checkout was completed
@@ -129,7 +125,7 @@ func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
 		return
 	}
 
-	pl, err := s.Repo().PlanByName(req.Plan)
+	pl, err := s.Repository().GetPlanByName(req.Plan)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNoPlan
 	}

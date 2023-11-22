@@ -9,11 +9,12 @@ import (
 	"github.com/stripe/stripe-go/v74/subscription"
 )
 
-// syncSubscriptions pulls in all subscriptions from stripe
-func (s *StripeService) syncSubscriptions() error {
+// SyncSubscriptions pulls in all subscriptions from stripe
+func (s *StripeService) SyncSubscriptions() error {
 	it := subscription.List(nil)
 	for it.Next() {
 		sub := it.Subscription()
+
 		if err := s.saveSubscription(sub); err != nil {
 			log.Printf("error while syncing subscriptions: %v", err)
 		}
@@ -41,7 +42,7 @@ func (s *StripeService) saveSubscription(stripeSub *stripe.Subscription) error {
 
 	if sub.ID == 0 {
 		// subscription was added we can fire an event
-		if err := s.Repo().AddSubscription(sub); err != nil {
+		if err := s.Repository().AddSubscription(sub); err != nil {
 			return err
 		}
 
@@ -51,7 +52,7 @@ func (s *StripeService) saveSubscription(stripeSub *stripe.Subscription) error {
 	}
 
 	// check if the subscription
-	if err := s.Repo().UpdateSubscriptionByID(sub); err != nil {
+	if err := s.Repository().UpdateSubscriptionByID(sub); err != nil {
 		return err
 	}
 
@@ -73,13 +74,13 @@ func (s *StripeService) getSubscription(stripeSub *stripe.Subscription) (*Subscr
 	}
 
 	// lookup to find local id in database +1
-	found, _ := s.Repo().SubscriptionByProviderID(stripeSub.ID)
+	found, _ := s.Repository().GetSubscriptionByProviderID(stripeSub.ID)
 	if found != nil {
 		sub.ID = found.ID
 	}
 
 	// lookup the customer
-	cust, err := s.Repo().CustomerByProviderID(stripeSub.Customer.ID)
+	cust, err := s.Repository().GetCustomerByProvider(StripeProvider, stripeSub.Customer.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +90,7 @@ func (s *StripeService) getSubscription(stripeSub *stripe.Subscription) (*Subscr
 
 	productID := stripeSub.Items.Data[0].Plan.Product.ID
 	// look up the plan + 3
-	plan, err := s.Repo().PlanByProviderID(productID)
+	plan, err := s.Repository().GetPlanByProviderID(productID)
 	if err != nil {
 		return nil, err
 	}

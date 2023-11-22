@@ -18,7 +18,6 @@ type Provider interface {
 	Sync() error
 	AddCustomer(uid pgxx.ID, name, email string) (*Customer, error)
 	PlanByUser(uid pgxx.ID) (*Plan, error)
-	ListPlans() ([]Plan, error)
 	VerifyCheckout(string) error
 	Checkout(*CheckoutRequest) (url string, err error)
 	Webhook() http.HandlerFunc

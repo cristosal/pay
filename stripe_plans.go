@@ -8,7 +8,7 @@ import (
 	"github.com/stripe/stripe-go/v74/product"
 )
 
-func (s *StripeService) syncPlans() error {
+func (s *StripeService) SyncPlans() error {
 	plans, err := s.fetchPlans()
 	if err != nil {
 		return err
@@ -16,10 +16,10 @@ func (s *StripeService) syncPlans() error {
 
 	for _, p := range plans {
 		// check if we have it
-		found, _ := s.Repo().PlanByProviderID(p.ProviderID)
+		found, _ := s.Repository().GetPlanByProviderID(p.ProviderID)
 
 		if found == nil {
-			if err := s.Repo().AddPlan(&p); err != nil {
+			if err := s.Repository().AddPlan(&p); err != nil {
 				log.Printf("error adding plan during sync: %v", err)
 			}
 
@@ -28,7 +28,7 @@ func (s *StripeService) syncPlans() error {
 		}
 
 		p.ID = found.ID
-		if err := s.Repo().UpdatePlanByID(&p); err != nil {
+		if err := s.Repository().UpdatePlanByID(&p); err != nil {
 			log.Printf("error updating plan during sync: %v", err)
 		}
 	}
