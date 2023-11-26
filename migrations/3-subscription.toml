@@ -1,0 +1,15 @@
+name = "subscription_table"
+description = "Creates a subscription table"
+up = """
+  CREATE TABLE IF NOT EXISTS subscription (
+    id SERIAL PRIMARY KEY,
+    customer_id INT NOT NULL,
+    plan_id INT NOT NULL,
+    provider VARCHAR(255) NOT NULL,
+    provider_id VARCHAR(255) NOT NULL,
+    active BOOL NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (customer_id) REFERENCES customer(id),
+    FOREIGN KEY (plan_id) REFERENCES plan(id)
+  );
+"""
+down = "DROP TABLE subscription"

@@ -4,6 +4,20 @@ import (
 	"time"
 )
 
+const (
+	PricingAnnual  = "annual"
+	PricingMonthly = "monthly"
+	PricingOnce    = "once"
+)
+
+type Price struct {
+	ID       int64
+	PlanID   int    // id of associated plan
+	Amount   int64  // in lowest common denominator
+	Currency string // three letter currency code
+	Schedule string // one of PricingAnnual | PricingMonthly | PricingOnce
+}
+
 type Plan struct {
 	ID         int64  `db:"id"`
 	ProviderID string `db:"provider_id"`

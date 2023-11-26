@@ -1,0 +1,16 @@
+name = "add price id to subscription"
+description = "Adds a price id column to subscriptionforeign key relationship to subscription"
+up = """
+ALTER TABLE subscription 
+ADD COLUMN price_id INT NOT NULL;
+
+ALTER TABLE subscription 
+ADD FOREIGN KEY(price_id) REFERENCES price(id);
+"""
+down = """
+ALTER TABLE subscription 
+DROP CONSTRAINT fk_subscription_price_id COLUMN price_id;
+
+ALTER TABLE subscription
+DROP COLUMN price_id;
+"""

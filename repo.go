@@ -24,52 +24,14 @@ func (r *Repo) Init(ctx context.Context) error {
 		return err
 	}
 
-	return m.PushMany(ctx, []migra.Migration{
-		{
-			Name:        "customer_table",
-			Description: "Creates customer table",
-			Up: `CREATE TABLE IF NOT EXISTS customer (
-				id SERIAL PRIMARY KEY,
-				user_id INT,
-				provider_id VARCHAR(255) NOT NULL,
-				provider VARCHAR(32) NOT NULL,
-				name VARCHAR(255) NOT NULL,
-				email VARCHAR(255) NOT NULL,
-				UNIQUE (provider_id, provider)
-			)`,
-			Down: "DROP TABLE customer",
-		},
-		{
-			Name:        "plan_table",
-			Description: "Create plan table",
-			Up: `CREATE TABLE IF NOT EXISTS plan (
-				id SERIAL PRIMARY KEY,
-				name VARCHAR(255) NOT NULL,
-				provider VARCHAR(255) NOT NULL,
-				provider_id VARCHAR(255) NOT NULL,
-				active BOOL NOT NULL,
-				trial_days INT NOT NULL DEFAULT 0,
-				price INT NOT NULL
-			)`,
-			Down: "DROP TABLE plan",
-		},
-		{
-			Name:        "subscription_table",
-			Description: "Creates a subscription table",
-			Up: `CREATE TABLE IF NOT EXISTS subscription (
-				id SERIAL PRIMARY KEY,
-				customer_id INT NOT NULL,
-				plan_id INT NOT NULL,
-				provider VARCHAR(255) NOT NULL,
-				provider_id VARCHAR(255) NOT NULL,
-				active BOOL NOT NULL DEFAULT FALSE,
-				FOREIGN KEY (customer_id) REFERENCES customer(id),
-				FOREIGN KEY (plan_id) REFERENCES plan(id)
-			)`,
-			Down: "DROP TABLE subscription",
-		},
-		// add more migrations here
-	})
+	return m.PushDir(ctx, "migrations")
+}
+
+// Down runsa ll down migrations
+
+// ClearCustomers removes any customers from the database
+func (r *Repo) ClearCustomers() error {
+	return dbx.Exec(r.db, "delete from customer")
 }
 
 // GetCustomerByID returns the customer by its id field
@@ -112,8 +74,8 @@ func (r *Repo) AddCustomer(c *Customer) error {
 }
 
 // RemoveCustomerByProviderID removes customer by given provider
-func (r *Repo) RemoveCustomerByProviderID(providerID string) error {
-	return dbx.Exec(r.db, "DELETE FROM customer WHERE provider_id = $1", providerID)
+func (r *Repo) DeleteCustomerByProvider(provider, providerID string) error {
+	return dbx.Exec(r.db, "DELETE FROM customer WHERE provider = $1 AND provider_id = $2", provider, providerID)
 }
 
 func (r *Repo) ListPlans() ([]Plan, error) {
@@ -181,6 +143,15 @@ func (r *Repo) GetPlanByEmail(email string) (*Plan, error) {
 	}
 
 	return &p, nil
+}
+
+func (r *Repo) AddPrice(p *Price) error {
+	return dbx.Insert(r.db, p)
+}
+
+func (r *Repo) RemovePriceByID(id int) error {
+	return dbx.Exec(r.db, "DELETE FROM price WHERE id = $1")
+
 }
 
 func (r *Repo) AddSubscription(s *Subscription) error {

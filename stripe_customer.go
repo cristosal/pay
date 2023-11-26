@@ -96,5 +96,5 @@ func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
 		return err
 	}
 
-	return s.Repository().RemoveCustomerByProviderID(c.ID)
+	return s.Repository().DeleteCustomerByProvider(StripeProvider, c.ID)
 }

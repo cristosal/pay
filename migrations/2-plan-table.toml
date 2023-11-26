@@ -1,0 +1,16 @@
+name = "plan_table"
+description = "creates plan table"
+
+up = """
+  create table if not exists plan (
+    id serial primary key,
+    name varchar(255) not null,
+    provider varchar(255) not null,
+    provider_id varchar(255) not null,
+    active bool not null,
+    trial_days int not null default 0,
+    price int not null
+  );
+"""
+
+down = "drop table plan"
