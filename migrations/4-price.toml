@@ -1,13 +1,13 @@
 name= "price_table"
 description= "Creates Price Table"
 up = """
-CREATE TABLE price (
+CREATE TABLE pay.price (
 	id SERIAL PRIMARY KEY,
 	plan_id INT NOT NULL,
 	currency VARCHAR(3) NOT NULL,
 	amount INT NOT NULL DEFAULT 0,
 	schedule VARCHAR(32) NOT NULL,
-	FOREIGN KEY (plan_id) REFERENCES plan (id)
+	FOREIGN KEY (plan_id) REFERENCES pay.plan (id)
 );
 """
-down = "DROP TABLE price"
+down = "DROP TABLE pay.price"

@@ -1,7 +1,7 @@
 name = "customer table"
 description = "create customers table"
 up = """ 
-  create table if not exists customer (
+  create table if not exists pay.customer (
     id serial primary key,
     name varchar(255) not null,
     email varchar(255) not null,
@@ -10,5 +10,4 @@ up = """
     unique (provider, provider_id)
   );
 """
-
-down = "drop table customer"
+down = "drop table pay.customer"

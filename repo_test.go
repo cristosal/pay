@@ -3,7 +3,6 @@ package pay_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"testing"
 
 	"github.com/cristosal/pay"
@@ -17,12 +16,20 @@ func getEntityRepo(t *testing.T) *pay.Repo {
 	}
 
 	r := pay.NewEntityRepo(db)
-
-	if err := r.Init(context.Background()); err != nil {
-		t.Fatal(fmt.Errorf("failed to initialize repository: %w", err))
-	}
-
 	return r
+}
+
+func TestRepeatedInitialization(t *testing.T) {
+	var (
+		r = getEntityRepo(t)
+		n = 32
+	)
+
+	for i := 0; i < n; i++ {
+		if err := r.Init(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func TestCustomerSubscriptions(t *testing.T) {

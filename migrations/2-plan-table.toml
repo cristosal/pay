@@ -2,7 +2,7 @@ name = "plan_table"
 description = "creates plan table"
 
 up = """
-  create table if not exists plan (
+  create table if not exists pay.plan (
     id serial primary key,
     name varchar(255) not null,
     provider varchar(255) not null,
@@ -13,4 +13,4 @@ up = """
   );
 """
 
-down = "drop table plan"
+down = "drop table pay.plan"

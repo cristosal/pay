@@ -3,28 +3,43 @@ package pay
 import (
 	"context"
 	"database/sql"
+	"embed"
 
 	"github.com/cristosal/dbx"
 	"github.com/cristosal/migra"
 )
 
+//go:embed migrations
+var migrations embed.FS // directory containing migration files
+
 // Repo contains methods for storing entities within an sql database
-type Repo struct{ db *sql.DB }
+type Repo struct {
+	db             *sql.DB
+	migrationTable string
+}
 
 // NewEntityRepo is a constructor for *Repo
-func NewEntityRepo(db *sql.DB) *Repo { return &Repo{db} }
+func NewEntityRepo(db *sql.DB) *Repo {
+	return &Repo{
+		db:             db,
+		migrationTable: migra.DefaultMigrationTable,
+	}
+}
+
+// SetMigrationsTable for setting up migrations during init
+func (r *Repo) SetMigrationsTable(table string) {
+	r.migrationTable = table
+}
 
 // Init creates the required tables and migrations for entities
 func (r *Repo) Init(ctx context.Context) error {
-	m := migra.New(r.db)
-
-	m.SetMigrationsTable("pay_migrations")
+	m := migra.New(r.db).SetSchema("pay").SetMigrationsTable(r.migrationTable)
 
 	if err := m.Init(ctx); err != nil {
 		return err
 	}
 
-	return m.PushDir(ctx, "migrations")
+	return m.PushDirFS(ctx, migrations, "migrations")
 }
 
 // Down runsa ll down migrations
