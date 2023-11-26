@@ -11,21 +11,27 @@ const (
 )
 
 type Price struct {
-	ID       int64
-	PlanID   int    // id of associated plan
-	Amount   int64  // in lowest common denominator
-	Currency string // three letter currency code
-	Schedule string // one of PricingAnnual | PricingMonthly | PricingOnce
+	ID         int64 // internal identifier
+	PlanID     int64 // id of associated plan
+	Provider   string
+	ProviderID string
+	Amount     int64  // in lowest common denominator
+	Currency   string // three letter currency code
+	Schedule   string // one of PricingAnnual | PricingMonthly | PricingOnce
 }
 
+// Plan is a product that is periodically renewed
 type Plan struct {
-	ID         int64  `db:"id"`
-	ProviderID string `db:"provider_id"`
-	Provider   string `db:"provider"`
-	Name       string `db:"name"`
-	Active     bool   `db:"active"` // or not but should be active
-	Price      int64  `db:"price"`  // monthly price
-	TrialDays  int64  `db:"trial_days"`
+	ID         int64
+	ProviderID string
+	Provider   string
+	Name       string
+	Active     bool
+	TrialDays  int64
+}
+
+func (p *Plan) Table() string {
+	return "pay.plan"
 }
 
 // HasTrial returns true if plan has a set amount of trial days
@@ -38,15 +44,6 @@ func (p *Plan) TrialEnd() time.Time {
 	return time.Now().Add(time.Hour * 24 * time.Duration(p.TrialDays))
 }
 
-func (p *Plan) DisplayPrice() float64 {
-	return float64(p.Price) / 100
-}
-
-// IsFree returns wether the plan requires any payment to use
-func (p *Plan) IsFree() bool {
-	return p.Price == 0
-}
-
 // Customer represents a paying customer attached to a third party service like stripe or paypal
 type Customer struct {
 	ID         int64  // internal (to this service)
@@ -54,6 +51,10 @@ type Customer struct {
 	Provider   string // the provider for this customer
 	Name       string // customers name
 	Email      string // customers email
+}
+
+func (c *Customer) Table() string {
+	return "pay.customer"
 }
 
 // Subscription represents a customers subscription to a Plan
@@ -64,10 +65,8 @@ type Subscription struct {
 	Provider   string
 	ProviderID string
 	Active     bool
-
 	// Plan attached to this subscription
 	Plan *Plan `db:"-"`
-
 	// Customer attached to this subscription
 	Customer *Customer `db:"-"`
 }

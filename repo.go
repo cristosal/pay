@@ -4,10 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"fmt"
 
 	"github.com/cristosal/dbx"
 	"github.com/cristosal/migra"
 )
+
+// DefaultSchema where tables will be stored can be overriden using
+const DefaultSchema = "pay"
 
 //go:embed migrations
 var migrations embed.FS // directory containing migration files
@@ -16,6 +20,7 @@ var migrations embed.FS // directory containing migration files
 type Repo struct {
 	db             *sql.DB
 	migrationTable string
+	schema         string
 }
 
 // NewEntityRepo is a constructor for *Repo
@@ -23,6 +28,7 @@ func NewEntityRepo(db *sql.DB) *Repo {
 	return &Repo{
 		db:             db,
 		migrationTable: migra.DefaultMigrationTable,
+		schema:         DefaultSchema,
 	}
 }
 
@@ -31,20 +37,52 @@ func (r *Repo) SetMigrationsTable(table string) {
 	r.migrationTable = table
 }
 
-// Init creates the required tables and migrations for entities
+// SetSchema used for storing entity tables
+func (r *Repo) SetSchema(schema string) {
+	r.schema = schema
+}
+
+// Init creates the required tables and migrations for entities.
+// The call to init is idempotent and can therefore be called many times acheiving the same result.
 func (r *Repo) Init(ctx context.Context) error {
-	m := migra.New(r.db).SetSchema("pay").SetMigrationsTable(r.migrationTable)
+	m := migra.New(r.db).
+		SetSchema(r.schema).
+		SetMigrationsTable(r.migrationTable)
 
 	if err := m.Init(ctx); err != nil {
 		return err
 	}
 
-	return m.PushDirFS(ctx, migrations, "migrations")
+	if err := m.PushDirFS(ctx, migrations, "migrations"); err != nil {
+		return err
+	}
+
+	_, err := r.db.Exec(fmt.Sprintf("SET search_path = %s;", r.schema))
+
+	return err
 }
 
-// Down runsa ll down migrations
+// Destroy removes all tables and relationships
+func (r *Repo) Destroy(ctx context.Context) error {
+	m := migra.New(r.db).
+		SetSchema("pay").
+		SetMigrationsTable(r.migrationTable)
 
-// ClearCustomers removes any customers from the database
+	_, err := m.PopAll(ctx)
+	return err
+}
+
+// AddPrice to plan
+func (r *Repo) AddPrice(p *Price) error {
+	return dbx.Insert(r.db, p)
+}
+
+// RemovePrice delets price from repository
+func (r *Repo) RemovePrice(p *Price) error {
+	return dbx.Exec(r.db, "DELETE from price WHERE id = $1", p.ID)
+}
+
+// ClearCustomers removes all customers from the database
 func (r *Repo) ClearCustomers() error {
 	return dbx.Exec(r.db, "delete from customer")
 }
@@ -158,10 +196,6 @@ func (r *Repo) GetPlanByEmail(email string) (*Plan, error) {
 	}
 
 	return &p, nil
-}
-
-func (r *Repo) AddPrice(p *Price) error {
-	return dbx.Insert(r.db, p)
 }
 
 func (r *Repo) RemovePriceByID(id int) error {

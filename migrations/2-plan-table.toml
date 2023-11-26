@@ -1,16 +1,13 @@
 name = "plan_table"
-description = "creates plan table"
-
+description = "Creates a plan table"
 up = """
-  create table if not exists pay.plan (
-    id serial primary key,
-    name varchar(255) not null,
-    provider varchar(255) not null,
-    provider_id varchar(255) not null,
-    active bool not null,
-    trial_days int not null default 0,
-    price int not null
-  );
+CREATE TABLE pay.plan(
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	provider VARCHAR(255) NOT NULL,
+	provider_id VARCHAR(255) NOT NULL,
+	trial_days INT NOT NULL DEFAULT 0,
+	active BOOL NOT NULL
+);
 """
-
-down = "drop table pay.plan"
+down = "DROP TABLE pay.plan"

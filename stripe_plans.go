@@ -54,10 +54,9 @@ func (s *StripeService) fetchPlans() ([]Plan, error) {
 
 		plans = append(plans, Plan{
 			ProviderID: p.ID,
-			Provider:   StripeProvider,
+			Provider:   ProviderStripe,
 			Name:       p.Name,
 			Active:     p.Active,
-			Price:      p.DefaultPrice.UnitAmount,
 			TrialDays:  days,
 		})
 	}

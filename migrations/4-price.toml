@@ -1,13 +1,16 @@
 name= "price_table"
-description= "Creates Price Table"
+description= "Creates a price table with a one to many relationship with plan"
 up = """
-CREATE TABLE pay.price (
+CREATE TABLE pay.price(
 	id SERIAL PRIMARY KEY,
 	plan_id INT NOT NULL,
+	provider VARCHAR(255) NOT NULL,
+	provider_id VARCHAR(255) NOT NULL,
 	currency VARCHAR(3) NOT NULL,
 	amount INT NOT NULL DEFAULT 0,
 	schedule VARCHAR(32) NOT NULL,
-	FOREIGN KEY (plan_id) REFERENCES pay.plan (id)
+	FOREIGN KEY (plan_id) REFERENCES pay.plan (id),
+	UNIQUE (provider, provider_id)
 );
 """
 down = "DROP TABLE pay.price"

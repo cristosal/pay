@@ -69,7 +69,7 @@ func (s *StripeService) getSubscription(stripeSub *stripe.Subscription) (*Subscr
 
 	sub := Subscription{
 		ProviderID: stripeSub.ID,
-		Provider:   StripeProvider,
+		Provider:   ProviderStripe,
 		Active:     stripeSub.Status == "active",
 	}
 
@@ -80,7 +80,7 @@ func (s *StripeService) getSubscription(stripeSub *stripe.Subscription) (*Subscr
 	}
 
 	// lookup the customer
-	cust, err := s.Repository().GetCustomerByProvider(StripeProvider, stripeSub.Customer.ID)
+	cust, err := s.Repository().GetCustomerByProvider(ProviderStripe, stripeSub.Customer.ID)
 	if err != nil {
 		return nil, err
 	}

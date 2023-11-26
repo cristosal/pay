@@ -13,7 +13,7 @@ import (
 	"github.com/stripe/stripe-go/v74/product"
 )
 
-const StripeProvider = "stripe"
+const ProviderStripe = "stripe"
 
 var ErrCheckoutFailed = errors.New("checkout failed")
 
@@ -74,6 +74,10 @@ func (s *StripeService) Sync() error {
 
 	if err := s.SyncPlans(); err != nil {
 		return fmt.Errorf("error syncing plans: %w", err)
+	}
+
+	if err := s.SyncPrices(context.Background()); err != nil {
+		return fmt.Errorf("error syncing prices: %w", err)
 	}
 
 	if err := s.SyncSubscriptions(); err != nil {

@@ -3,38 +3,48 @@ package pay_test
 import (
 	"context"
 	"database/sql"
+	"os"
 	"testing"
 
 	"github.com/cristosal/pay"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func getEntityRepo(t *testing.T) *pay.Repo {
-	db, err := sql.Open("pgx", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := pay.NewEntityRepo(db)
-	return r
-}
-
-func TestRepeatedInitialization(t *testing.T) {
+func TestInit(t *testing.T) {
 	var (
-		r = getEntityRepo(t)
-		n = 32
+		r   = getPgxEntityRepo(t)
+		n   = 3
+		ctx = context.Background()
 	)
 
+	t.Cleanup(func() {
+		r.Destroy(ctx)
+	})
+
 	for i := 0; i < n; i++ {
-		if err := r.Init(context.Background()); err != nil {
+		if err := r.Init(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	if err := r.Destroy(ctx); err != nil {
+		t.Fatal(err)
+	}
 }
 
-func TestCustomerSubscriptions(t *testing.T) {
-	r := getEntityRepo(t)
-	t.Cleanup(func() { r.ClearCustomers() })
+func TestCustomerRepo(t *testing.T) {
+	var (
+		r   = getPgxEntityRepo(t)
+		ctx = context.Background()
+	)
+
+	t.Cleanup(func() {
+		r.Destroy(ctx)
+	})
+
+	if err := r.Init(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	cust := pay.Customer{
 		Name:       "Test Customer",
@@ -43,37 +53,26 @@ func TestCustomerSubscriptions(t *testing.T) {
 		ProviderID: "1",
 	}
 
-	// probably we want to replicate pricing as well.
-	r.AddCustomer(&cust)
-}
-
-func TestCustomerRepo(t *testing.T) {
-	r := getEntityRepo(t)
-
-	t.Cleanup(func() { r.ClearCustomers() })
-
-	c := &pay.Customer{
-		Name:       "Test Customer",
-		Email:      "test@cibera.com.mx",
-		ProviderID: "123",
-		Provider:   "test",
-	}
-
-	if err := r.AddCustomer(c); err != nil {
+	if err := r.AddCustomer(&cust); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Cleanup(func() {
-		r.DeleteCustomerByProvider("test", "123")
-	})
-
-	c2, err := r.GetCustomerByID(c.ID)
+	found, err := r.GetCustomerByEmail(cust.Email)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if c2.Name != c.Name {
-		t.Fatal("expected to match customers")
+	if found.ID != cust.ID {
+		t.Fatal("expected to find customer by email")
+	}
+}
+
+func getPgxEntityRepo(t *testing.T) *pay.Repo {
+	db, err := sql.Open("pgx", os.Getenv("TEST_CONNECTION_STRING"))
+	if err != nil {
+		t.Fatal(err)
 	}
 
+	r := pay.NewEntityRepo(db)
+	return r
 }

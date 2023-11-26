@@ -37,12 +37,12 @@ func (s *StripeService) SyncCustomers() error {
 		cust := it.Customer()
 		c := &Customer{
 			ProviderID: cust.ID,
-			Provider:   StripeProvider,
+			Provider:   ProviderStripe,
 			Name:       cust.Name,
 			Email:      cust.Email,
 		}
 
-		found, _ := s.Repository().GetCustomerByProvider(StripeProvider, cust.ID)
+		found, _ := s.Repository().GetCustomerByProvider(ProviderStripe, cust.ID)
 
 		if found == nil {
 			s.Repository().AddCustomer(c)
@@ -76,7 +76,7 @@ func (s *StripeService) createCustomer(name, email string) (*Customer, error) {
 	}
 
 	c := &Customer{
-		Provider:   StripeProvider,
+		Provider:   ProviderStripe,
 		ProviderID: cust.ID,
 		Name:       name,
 		Email:      email,
@@ -96,5 +96,5 @@ func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
 		return err
 	}
 
-	return s.Repository().DeleteCustomerByProvider(StripeProvider, c.ID)
+	return s.Repository().DeleteCustomerByProvider(ProviderStripe, c.ID)
 }

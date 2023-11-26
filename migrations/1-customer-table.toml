@@ -1,13 +1,13 @@
 name = "customer table"
 description = "create customers table"
 up = """ 
-  create table if not exists pay.customer (
-    id serial primary key,
-    name varchar(255) not null,
-    email varchar(255) not null,
-    provider varchar(32) not null,
-    provider_id varchar(255) not null,
-    unique (provider, provider_id)
-  );
+CREATE TABLE pay.customer (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT Null,
+	email VARCHAR(255) NOT Null,
+	provider VARCHAR(32) NOT NUll,
+	provider_id VARCHAR(255) NOT Null,
+	UNIQUE (provider, provider_id)
+);
 """
-down = "drop table pay.customer"
+down = "DROP TABLE pay.customer"
