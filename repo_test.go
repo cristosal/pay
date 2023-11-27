@@ -32,6 +32,27 @@ func TestInit(t *testing.T) {
 	}
 }
 
+func TestPlansAndPricing(t *testing.T) {
+	var (
+		r   = getPgxEntityRepo(t)
+		ctx = context.Background()
+	)
+
+	t.Cleanup(func() {
+		r.Destroy(ctx)
+	})
+
+	if err := r.AddPlan(&pay.Plan{
+		Name:       "Test Plan",
+		Active:     true,
+		TrialDays:  7,
+		Provider:   "test",
+		ProviderID: "1",
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestCustomerRepo(t *testing.T) {
 	var (
 		r   = getPgxEntityRepo(t)

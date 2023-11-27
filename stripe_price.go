@@ -9,7 +9,6 @@ import (
 
 func (s *StripeService) SyncPrices(ctx context.Context) error {
 	it := price.List(nil)
-	var prices []Price
 
 	for it.Next() {
 		p := it.Price()

@@ -77,7 +77,7 @@ func (r *Repo) AddPrice(p *Price) error {
 	return dbx.Insert(r.db, p)
 }
 
-// RemovePrice delets price from repository
+// RemovePrice deletes price from repository
 func (r *Repo) RemovePrice(p *Price) error {
 	return dbx.Exec(r.db, "DELETE from price WHERE id = $1", p.ID)
 }
@@ -131,6 +131,7 @@ func (r *Repo) DeleteCustomerByProvider(provider, providerID string) error {
 	return dbx.Exec(r.db, "DELETE FROM customer WHERE provider = $1 AND provider_id = $2", provider, providerID)
 }
 
+// ListPlans returns a list of all active plans
 func (r *Repo) ListPlans() ([]Plan, error) {
 	var plans []Plan
 	if err := dbx.Many(r.db, &plans, "WHERE active = true ORDER BY price ASC"); err != nil {
@@ -140,10 +141,12 @@ func (r *Repo) ListPlans() ([]Plan, error) {
 	return plans, nil
 }
 
+// AddPlan adds a plan to the repository
 func (r *Repo) AddPlan(p *Plan) error {
 	return dbx.Insert(r.db, p)
 }
 
+// RemovePlanByProviderID deletes a plan by provider id from the repository
 func (r *Repo) RemovePlanByProviderID(providerID string) error {
 	return dbx.Exec(r.db, "DELETE FROM plan WHERE provider_id = $1", providerID)
 }
