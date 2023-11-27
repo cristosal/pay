@@ -1,18 +1,15 @@
 # Pay
 
-Pay is a package that contains methods and functions related to accessing customer, plan, subscription, and price data. It was originally designed as part of a SAAS project and was extrapolated into a separate package.
+Pay is a package that contains methods and functions related to accessing customer, plan, subscription, and price data.
 
-Pay synchronizes with 3rd party vendors such as [stripe](https://www.stripe.com) and paypal, allowing you to backup and copy all of the data that exists on those platforms locally in your database. 
+Pay synchronizes with 3rd party vendors such as [stripe](https://www.stripe.com) and paypal, allowing you to keep a platform agnostic copy all of the data that exists on those platforms in your database. 
 
-All entities are updated and kept in sync via  a `Webhook() http.Handler` interface that is exposed. 
-
-Data that comes in through the webhook is treated as the source of truth, with the exception of adding customers all data  is to be added and updated from the payment provider. `pay` simply listens to these events and updates your entities accordingly. This is to avoid the recursive case where an update to an entity from the application triggers a webhook message which then updates the same entity, which then trigers a message to the webhook etc...
-
-Currently `pay` only supports postgres as an underlying database. If you wish to support other databases please make a pull request.
+All entities are updated and kept in sync via  a `Webhook() http.Handler` interface that is exposed by each providers service.
 
 ## Installation
 
 Same as any other go package
+
 `go get -u github.com/cristosal/pay`
 
 ## Getting Started
@@ -46,3 +43,11 @@ After this you can register the `http` webhook listener which will then update y
 http.HandleFunc("/webhook/stripe", service.Webhook())
 ```
 
+## Notes
+
+Data that comes in through the webhook should be treated as the source of truth. 
+With the exception of adding customers, all data should be updated from the payment provider. `pay` simply listens to these events and updates your entities accordingly. 
+
+This is to avoid the recursive case where an update to an entity from the application triggers a webhook message which then updates the same entity, which then trigers a message to the webhook etc...
+
+>Currently `pay` only supports postgres as an underlying database. If you wish to support other databases please make a pull request.
