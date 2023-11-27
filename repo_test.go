@@ -10,10 +10,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func TestFoo(t *testing.T) {
-	//
-}
-
 func TestInit(t *testing.T) {
 	var (
 		r   = getPgxEntityRepo(t)
