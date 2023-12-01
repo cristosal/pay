@@ -18,9 +18,9 @@ func NewStripeEventRepo(db *sql.DB) *StripeEventRepo {
 
 // Init table and migrations
 func (s *StripeEventRepo) Init(ctx context.Context) error {
-	m := migra.New(s.db).SetMigrationsTable("pay_migrations")
+	m := migra.New(s.db).SetMigrationTable("pay_migrations")
 
-	if err := m.Init(ctx); err != nil {
+	if err := m.CreateMigrationTable(ctx); err != nil {
 		return err
 	}
 

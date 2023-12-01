@@ -47,9 +47,9 @@ func (r *Repo) SetSchema(schema string) {
 func (r *Repo) Init(ctx context.Context) error {
 	m := migra.New(r.db).
 		SetSchema(r.schema).
-		SetMigrationsTable(r.migrationTable)
+		SetMigrationTable(r.migrationTable)
 
-	if err := m.Init(ctx); err != nil {
+	if err := m.CreateMigrationTable(ctx); err != nil {
 		return err
 	}
 
@@ -66,7 +66,7 @@ func (r *Repo) Init(ctx context.Context) error {
 func (r *Repo) Destroy(ctx context.Context) error {
 	m := migra.New(r.db).
 		SetSchema("pay").
-		SetMigrationsTable(r.migrationTable)
+		SetMigrationTable(r.migrationTable)
 
 	_, err := m.PopAll(ctx)
 	return err
@@ -118,7 +118,7 @@ func (r *Repo) GetCustomerByProvider(provider, providerID string) (*Customer, er
 
 // UpdateCustomerByID updates a given customer by id field
 func (r *Repo) UpdateCustomerByID(c *Customer) error {
-	return dbx.Update(r.db, c)
+	return dbx.UpdateByID(r.db, c)
 }
 
 // AddCustomer inserts a customer into the repository
@@ -151,10 +151,17 @@ func (r *Repo) RemovePlanByProviderID(providerID string) error {
 	return dbx.Exec(r.db, "DELETE FROM plan WHERE provider_id = $1", providerID)
 }
 
+// UpdatePlanByID updates the plan matching the id field
 func (r *Repo) UpdatePlanByID(p *Plan) error {
-	return dbx.Update(r.db, p)
+	return dbx.UpdateByID(r.db, p)
 }
 
+// UpdatePlanByProvider updates the plan matching the provider and provider id
+func (r *Repo) UpdatePlanByProvider(p *Plan) error {
+	return dbx.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
+}
+
+// GetPlanByID returns the plan matching the internal id
 func (r *Repo) GetPlanByID(id int64) (*Plan, error) {
 	var p Plan
 	if err := dbx.One(r.db, &p, "where id = $1", id); err != nil {
@@ -163,17 +170,21 @@ func (r *Repo) GetPlanByID(id int64) (*Plan, error) {
 	return &p, nil
 }
 
-func (r *Repo) GetPlanByProviderID(providerID string) (*Plan, error) {
+// GetPlanByProvider returns the plan which matches provider and provider id
+func (r *Repo) GetPlanByProvider(provider, providerID string) (*Plan, error) {
 	var p Plan
-	if err := dbx.One(r.db, &p, "where provider_id = $1", providerID); err != nil {
+
+	if err := dbx.One(r.db, &p, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
 		return nil, err
 	}
+
 	return &p, nil
 }
 
+// GetPlanByName returns the plan with given name
 func (r *Repo) GetPlanByName(name string) (*Plan, error) {
 	var p Plan
-	if err := dbx.One(r.db, &p, "where name = $1", name); err != nil {
+	if err := dbx.One(r.db, &p, "WHERE name = $1", name); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -211,7 +222,7 @@ func (r *Repo) AddSubscription(s *Subscription) error {
 }
 
 func (r *Repo) UpdateSubscriptionByID(s *Subscription) error {
-	return dbx.Update(r.db, s)
+	return dbx.UpdateByID(r.db, s)
 }
 
 func (r *Repo) RemoveSubscriptionByProviderID(providerID string) error {
