@@ -18,7 +18,7 @@ func TestInit(t *testing.T) {
 	)
 
 	t.Cleanup(func() {
-		r.Destroy(ctx)
+		_ = r.Destroy(ctx)
 	})
 
 	for i := 0; i < n; i++ {
@@ -39,15 +39,17 @@ func TestPlansAndPricing(t *testing.T) {
 	)
 
 	t.Cleanup(func() {
-		r.Destroy(ctx)
+		_ = r.Destroy(ctx)
 	})
+
+	pl := 
 
 	if err := r.AddPlan(&pay.Plan{
 		Name:       "Test Plan",
-		Active:     true,
-		TrialDays:  7,
 		Provider:   "test",
 		ProviderID: "1",
+		TrialDays:  7,
+		Active:     true,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +62,7 @@ func TestCustomerRepo(t *testing.T) {
 	)
 
 	t.Cleanup(func() {
-		r.Destroy(ctx)
+		_ = r.Destroy(ctx)
 	})
 
 	if err := r.Init(ctx); err != nil {
@@ -88,7 +90,7 @@ func TestCustomerRepo(t *testing.T) {
 	}
 }
 
-func getPgxEntityRepo(t *testing.T) *pay.Repo {
+func getPgxEntityRepo(t *testing.T) *pay.EntityRepo {
 	db, err := sql.Open("pgx", os.Getenv("TEST_CONNECTION_STRING"))
 	if err != nil {
 		t.Fatal(err)

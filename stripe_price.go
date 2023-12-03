@@ -12,13 +12,13 @@ func (s *StripeService) SyncPrices(ctx context.Context) error {
 
 	for it.Next() {
 		p := it.Price()
-		plan, _ := s.Repository().GetPlanByProviderID(p.Product.ID)
+		plan, _ := s.Entities().GetPlanByProvider(ProviderStripe, p.Product.ID)
 
 		if plan == nil {
 			continue
 		}
 
-		if err := s.Repository().AddPrice(&Price{
+		if err := s.Entities().AddPrice(&Price{
 			PlanID:     plan.ID,
 			Amount:     p.UnitAmount,
 			Provider:   ProviderStripe,

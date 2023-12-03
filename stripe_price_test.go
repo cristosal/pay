@@ -19,7 +19,7 @@ func TestPriceSync(t *testing.T) {
 
 	s := pay.NewStripeProvider(&pay.StripeConfig{
 		EntityRepo:      pay.NewEntityRepo(db),
-		StripeEventRepo: pay.NewStripeEventRepo(db),
+		StripeWebhookEventRepo: pay.NewStripeEventRepo(db),
 		Key:             os.Getenv("TEST_STRIPE_KEY"),
 		WebhookSecret:   os.Getenv("TEST_STRIPE_WEBHOOK_SECRET"),
 	})

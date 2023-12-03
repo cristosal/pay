@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cristosal/dbx"
 	"github.com/jackc/pgx/v5"
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/checkout/session"
@@ -20,53 +21,50 @@ var ErrCheckoutFailed = errors.New("checkout failed")
 type (
 	// StripeConfig configures StripeService with necessary credentials and callbacks
 	StripeConfig struct {
-		EntityRepo      *Repo
-		StripeEventRepo *StripeEventRepo
-		Key             string
-		WebhookSecret   string
+		EntityRepo             *EntityRepo
+		StripeWebhookEventRepo *StripeEventRepo
+		Key                    string
+		WebhookSecret          string
 	}
 
 	// StripeService interfaces with stripe for customer, plan and subscription data
 	StripeService struct {
-		cfg                *StripeConfig
+		config             *StripeConfig
 		subAddCallback     func(*Subscription)
 		subUpdatedCallback func(*Subscription)
 	}
 )
 
-// NewStripeProvider creates a service for interacting with stripe
-func NewStripeProvider(cfg *StripeConfig) *StripeService {
-	if cfg == nil {
-		cfg = new(StripeConfig)
+// NewStripeProvider creates a provider service for interacting with stripe
+func NewStripeProvider(config *StripeConfig) *StripeService {
+
+	if config == nil {
+		config = new(StripeConfig)
 	}
 
-	stripe.Key = cfg.Key
+	stripe.Key = config.Key
 
 	return &StripeService{
-		cfg:                cfg,
+		config:             config,
 		subAddCallback:     func(*Subscription) {},
 		subUpdatedCallback: func(*Subscription) {},
 	}
 }
 
-// Init creates tables and syncs data
+// Init creates necessary tables by executing migrations
 func (s *StripeService) Init(ctx context.Context) error {
-	if err := s.Repository().Init(ctx); err != nil {
+	if err := s.Entities().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing customers: %w", err)
 	}
 
-	if err := s.Events().Init(ctx); err != nil {
+	if err := s.WebhookEvents().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing stripe event store: %w", err)
-	}
-
-	if err := s.Sync(); err != nil {
-		return fmt.Errorf("error syncing data: %w", err)
 	}
 
 	return nil
 }
 
-// Sync data with stripe
+// Sync repository data with stripe
 func (s *StripeService) Sync() error {
 	if err := s.SyncCustomers(); err != nil {
 		return fmt.Errorf("error syncing customers: %w", err)
@@ -87,19 +85,22 @@ func (s *StripeService) Sync() error {
 	return nil
 }
 
-func (s *StripeService) Events() *StripeEventRepo {
-	return s.cfg.StripeEventRepo
+// WebhookEvents returns the stripe event repository
+func (s *StripeService) WebhookEvents() *StripeEventRepo {
+	return s.config.StripeWebhookEventRepo
 }
 
-// Customers returns the underlying customer repo
-func (s *StripeService) Repository() *Repo {
-	return s.cfg.EntityRepo
+// Entities returns the entity repository
+func (s *StripeService) Entities() *EntityRepo {
+	return s.config.EntityRepo
 }
 
+// OnSubscriptionAdded registers a callback that is invoked whenever a subscription is added to the repository
 func (s *StripeService) OnSubscriptionAdded(fn func(*Subscription)) {
 	s.subAddCallback = fn
 }
 
+// OnSubscriptionUpdated registers a callback that is invoked whenever a subscription is updated in the repository
 func (s *StripeService) OnSubscriptionUpdated(fn func(*Subscription)) {
 	s.subUpdatedCallback = fn
 }
@@ -118,9 +119,20 @@ func (s *StripeService) VerifyCheckout(sessionID string) error {
 	return nil
 }
 
-func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
-	cust, err := s.AddCustomer(req.Name, req.Email)
+// CheckoutRequest
+type CheckoutRequest struct {
+	UserID      dbx.ID `json:"user_id"`
+	Plan        string `json:"plan"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	Phone       string `json:"phone"`
+	RedirectURL string `json:"redirect_url"`
+}
 
+// Checkout returns the url that a user has to visit in order to complete payment
+// it registers the customer if it was unavailable
+func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
+	cust, err := s.addCustomer(req.Name, req.Email)
 	if errors.Is(err, ErrNotFound) {
 		err = nil
 	}
@@ -129,9 +141,9 @@ func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
 		return
 	}
 
-	pl, err := s.Repository().GetPlanByName(req.Plan)
+	pl, err := s.Entities().GetPlanByName(req.Plan)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", ErrNoPlan
+		return "", ErrNotFound
 	}
 
 	if err != nil {
@@ -140,7 +152,7 @@ func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
 
 	prod, err := product.Get(pl.ProviderID, nil)
 	if err != nil {
-		return "", ErrNoPlan
+		return "", ErrNotFound
 	}
 
 	var trialEnd *int64 = nil

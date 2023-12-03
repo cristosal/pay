@@ -52,7 +52,7 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 		// Pass the request body and Stripe-Signature header to ConstructEvent, along
 		// with the webhook signing key.
 		sig := r.Header.Get("Stripe-Signature")
-		event, err := webhook.ConstructEvent(payload, sig, s.cfg.WebhookSecret)
+		event, err := webhook.ConstructEvent(payload, sig, s.config.WebhookSecret)
 
 		if err != nil {
 			log.Printf("Error verifying webhook signature: %v\n", err)
@@ -60,13 +60,13 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 			return
 		}
 
-		if s.Events().Has(&event) {
+		if s.WebhookEvents().Has(&event) {
 			log.Printf("Already processed event with id %s", event.ID)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		if err := s.Events().Add(&event); err != nil {
+		if err := s.WebhookEvents().Add(&event); err != nil {
 			log.Printf("error while saving stripe event: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

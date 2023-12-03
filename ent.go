@@ -20,14 +20,15 @@ type Price struct {
 	Schedule   string // one of PricingAnnual | PricingMonthly | PricingOnce
 }
 
-// Plan is a product that is periodically renewed
+// Plan
 type Plan struct {
 	ID         int64
-	ProviderID string
-	Provider   string
 	Name       string
-	Active     bool
+	Provider   string
+	ProviderID string
 	TrialDays  int64
+	Active     bool
+	Features   []string
 }
 
 func (p *Plan) Table() string {

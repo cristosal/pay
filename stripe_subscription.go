@@ -42,7 +42,7 @@ func (s *StripeService) saveSubscription(stripeSub *stripe.Subscription) error {
 
 	if sub.ID == 0 {
 		// subscription was added we can fire an event
-		if err := s.Repository().AddSubscription(sub); err != nil {
+		if err := s.Entities().AddSubscription(sub); err != nil {
 			return err
 		}
 
@@ -52,7 +52,7 @@ func (s *StripeService) saveSubscription(stripeSub *stripe.Subscription) error {
 	}
 
 	// check if the subscription
-	if err := s.Repository().UpdateSubscriptionByID(sub); err != nil {
+	if err := s.Entities().UpdateSubscriptionByID(sub); err != nil {
 		return err
 	}
 
@@ -74,13 +74,13 @@ func (s *StripeService) getSubscription(stripeSub *stripe.Subscription) (*Subscr
 	}
 
 	// lookup to find local id in database +1
-	found, _ := s.Repository().GetSubscriptionByProviderID(stripeSub.ID)
+	found, _ := s.Entities().GetSubscriptionByProviderID(stripeSub.ID)
 	if found != nil {
 		sub.ID = found.ID
 	}
 
 	// lookup the customer
-	cust, err := s.Repository().GetCustomerByProvider(ProviderStripe, stripeSub.Customer.ID)
+	cust, err := s.Entities().GetCustomerByProvider(ProviderStripe, stripeSub.Customer.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (s *StripeService) getSubscription(stripeSub *stripe.Subscription) (*Subscr
 
 	productID := stripeSub.Items.Data[0].Plan.Product.ID
 	// look up the plan + 3
-	plan, err := s.Repository().GetPlanByProviderID(productID)
+	plan, err := s.Entities().GetPlanByProvider(ProviderStripe, productID)
 	if err != nil {
 		return nil, err
 	}
