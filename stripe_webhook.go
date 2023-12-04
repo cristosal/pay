@@ -12,6 +12,7 @@ import (
 	"github.com/stripe/stripe-go/v74/webhook"
 )
 
+// Webhook returns the http handler that is responsible for handling any event received from stripe
 func (s *StripeService) Webhook() http.HandlerFunc {
 	const MaxBodyBytes = int64(65536)
 	whevents := make(chan stripe.Event)
@@ -40,6 +41,8 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 				err = s.handleCustomerUpdated(event.Data)
 			case "customer.deleted":
 				err = s.handleCustomerDeleted(event.Data)
+			case "customer.subscription.created":
+				err = s.handleSubscriptionCreated(event.Data)
 			}
 
 			if err != nil {
@@ -86,7 +89,8 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 	}
 }
 
-func (s StripeService) subconv(sub *stripe.Subscription) (*Subscription, error) {
+// convert subscription types
+func (s StripeService) convertSubscription(sub *stripe.Subscription) (*Subscription, error) {
 	// ensure that the first item is a subscription
 	if sub.Items == nil ||
 		len(sub.Items.Data) == 0 ||
@@ -125,7 +129,7 @@ func (s *StripeService) handleSubscriptionCreated(data *stripe.EventData) error 
 		return err
 	}
 
-	subscr, err := s.subconv(&sub)
+	subscr, err := s.convertSubscription(&sub)
 	if err != nil {
 		return err
 	}

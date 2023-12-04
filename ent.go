@@ -4,10 +4,12 @@ import (
 	"time"
 )
 
+type PricingSchedule = string
+
 const (
-	PricingAnnual  = "annual"
-	PricingMonthly = "monthly"
-	PricingOnce    = "once"
+	PricingAnnual  PricingSchedule = "annual"
+	PricingMonthly PricingSchedule = "monthly"
+	PricingOnce    PricingSchedule = "once"
 )
 
 type Price struct {
@@ -15,9 +17,9 @@ type Price struct {
 	PlanID     int64 // id of associated plan
 	Provider   string
 	ProviderID string
-	Amount     int64  // in lowest common denominator
-	Currency   string // three letter currency code
-	Schedule   string // one of PricingAnnual | PricingMonthly | PricingOnce
+	Amount     int64           // in lowest common denominator
+	Currency   string          // three letter currency code
+	Schedule   PricingSchedule // one of PricingAnnual | PricingMonthly | PricingOnce
 	TrialDays  int
 }
 
