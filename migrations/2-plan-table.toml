@@ -4,9 +4,9 @@ up = """
 CREATE TABLE pay.plan(
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
+    description TEXT,
 	provider VARCHAR(255) NOT NULL,
 	provider_id VARCHAR(255) NOT NULL,
-	trial_days INT NOT NULL DEFAULT 0,
 	active BOOL NOT NULL
 );
 """
