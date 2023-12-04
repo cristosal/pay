@@ -37,7 +37,6 @@ func (s *StripeService) syncPrices(ctx context.Context) error {
 	return nil
 }
 
-// syncCustomers pulls all customers from stripe and upserts them in the repository
 func (s *StripeService) syncCustomers() error {
 	it := customer.List(nil)
 	for it.Next() {
@@ -106,11 +105,8 @@ func (s *StripeService) syncPlans() error {
 func (s *StripeService) syncSubscriptions() error {
 	it := subscription.List(nil)
 	for it.Next() {
-		sub := it.Subscription()
-
-		if err := s.saveSubscription(sub); err != nil {
-			log.Printf("error while syncing subscriptions: %v", err)
-		}
+		_ = it.Subscription()
+		// TODO: upsert subscriptions
 	}
 
 	return it.Err()

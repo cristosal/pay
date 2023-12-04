@@ -70,6 +70,15 @@ func (r *EntityRepo) GetPriceByID(priceID int64) (*Price, error) {
 	return &p, nil
 }
 
+// GetPriceByID returns the price by a given id
+func (r *EntityRepo) GetPriceByProvider(provider, providerID string) (*Price, error) {
+	var p Price
+	if err := dbx.One(r.db, &p, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 // GetPricesByPlanID returns the planID
 func (r *EntityRepo) GetPricesByPlanID(planID int64) ([]Price, error) {
 	var p []Price
@@ -94,6 +103,7 @@ func (r *EntityRepo) AddPrice(p *Price) error {
 	return dbx.Insert(r.db, p)
 }
 
+// UpdatePriceByProvider
 func (r *EntityRepo) UpdatePriceByProvider(p *Price) error {
 	return dbx.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2",
 		p.Provider, p.ProviderID)

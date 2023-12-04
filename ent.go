@@ -60,13 +60,9 @@ func (c *Customer) Table() string {
 // Subscription represents a customers subscription to a Plan
 type Subscription struct {
 	ID         int64
-	CustomerID int64
-	PlanID     int64
 	Provider   string
 	ProviderID string
+	CustomerID int64
+	PriceID    int64
 	Active     bool
-	// Plan attached to this subscription
-	Plan *Plan `db:"-"`
-	// Customer attached to this subscription
-	Customer *Customer `db:"-"`
 }

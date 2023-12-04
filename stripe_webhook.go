@@ -2,6 +2,8 @@ package pay
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -38,10 +40,6 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 				err = s.handleCustomerUpdated(event.Data)
 			case "customer.deleted":
 				err = s.handleCustomerDeleted(event.Data)
-			case "customer.subscription.created",
-				"customer.subscription.updated",
-				"customer.subscription.deleted":
-				err = s.handleSubscriptionEvent(&event) // this is good
 			}
 
 			if err != nil {
@@ -88,6 +86,53 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 	}
 }
 
+func (s StripeService) subconv(sub *stripe.Subscription) (*Subscription, error) {
+	// ensure that the first item is a subscription
+	if sub.Items == nil ||
+		len(sub.Items.Data) == 0 ||
+		sub.Items.Data[0].Price == nil {
+		return nil, errors.New("unable to get price id from subscription")
+	}
+
+	priceID := sub.Items.Data[0].Price.ID
+	pr, err := s.Entities().GetPriceByProvider(ProviderStripe, priceID)
+	if err != nil {
+		return nil, fmt.Errorf("could not get price %s: %w", priceID, err)
+	}
+
+	cust, err := s.Entities().GetCustomerByProvider(ProviderStripe, sub.Customer.ID)
+	if err != nil {
+		return nil, fmt.Errorf("could not get customer with provider_id = %s for subscription %s: %w",
+			sub.Customer.ID, sub.ID, err)
+	}
+
+	subscr := Subscription{
+		Provider:   ProviderStripe,
+		ProviderID: sub.ID,
+		CustomerID: cust.ID,
+		PriceID:    pr.ID,
+		Active:     sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing,
+	}
+
+	return &subscr, nil
+
+	// subscription is done to a price so we have to note that
+}
+
+func (s *StripeService) handleSubscriptionCreated(data *stripe.EventData) error {
+	var sub stripe.Subscription
+	if err := sub.UnmarshalJSON(data.Raw); err != nil {
+		return err
+	}
+
+	subscr, err := s.subconv(&sub)
+	if err != nil {
+		return err
+	}
+
+	return s.Entities().AddSubscription(subscr)
+}
+
 func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
 	var c stripe.Customer
 	if err := json.Unmarshal(data.Raw, &c); err != nil {
@@ -96,17 +141,21 @@ func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
 	return s.Entities().DeleteCustomerByProvider(ProviderStripe, c.ID)
 }
 
+func (StripeService) custconv(c *stripe.Customer) *Customer {
+	return &Customer{
+		ProviderID: c.ID,
+		Provider:   ProviderStripe,
+		Name:       c.Name,
+		Email:      c.Email,
+	}
+}
+
 func (s *StripeService) handleCustomerCreated(data *stripe.EventData) error {
 	var c stripe.Customer
 	if err := json.Unmarshal(data.Raw, &c); err != nil {
 		return err
 	}
-	return s.Entities().AddCustomer(&Customer{
-		ProviderID: c.ID,
-		Provider:   ProviderStripe,
-		Name:       c.Name,
-		Email:      c.Email,
-	})
+	return s.Entities().AddCustomer(s.custconv(&c))
 }
 
 func (s *StripeService) handleCustomerUpdated(data *stripe.EventData) error {
@@ -138,6 +187,7 @@ func (s *StripeService) handlePriceUpdated(data *stripe.EventData) error {
 	if err := json.Unmarshal(data.Raw, &p); err != nil {
 		return err
 	}
+
 	pl, err := s.Entities().GetPlanByProvider(ProviderStripe, p.Product.ID)
 	if err != nil {
 		return err
