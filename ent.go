@@ -32,21 +32,22 @@ func (p *Price) TrialEnd() time.Time {
 	return time.Now().Add(time.Hour * 24 * time.Duration(p.TrialDays))
 }
 
-// Plan
+// Plan the
 type Plan struct {
-	ID         int64
-	Name       string
-	Provider   string
-	ProviderID string
-	Active     bool
-	Features   []string
+	ID          int64
+	Name        string
+	Description string
+	Provider    string
+	ProviderID  string
+	Active      bool
+	Features    []string
 }
 
 func (p *Plan) Table() string {
 	return "pay.plan"
 }
 
-// Customer represents a paying customer attached to a third party service like stripe or paypal
+// Customer from a provider like stripe or paypal
 type Customer struct {
 	ID         int64  // internal (to this service)
 	ProviderID string // external providers id
@@ -67,4 +68,8 @@ type Subscription struct {
 	CustomerID int64
 	PriceID    int64
 	Active     bool
+}
+
+func (s *Subscription) TableName() string {
+	return "pay.subscription"
 }
