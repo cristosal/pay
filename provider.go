@@ -3,8 +3,6 @@ package pay
 import (
 	"errors"
 	"net/http"
-
-	"github.com/cristosal/orm"
 )
 
 var (
@@ -15,8 +13,6 @@ var (
 type Provider interface {
 	Init() error
 	Sync() error
-	AddCustomer(uid orm.ID, name, email string) (*Customer, error)
-	PlanByUser(uid orm.ID) (*Plan, error)
 	VerifyCheckout(string) error
 	Checkout(*CheckoutRequest) (url string, err error)
 	Webhook() http.HandlerFunc
