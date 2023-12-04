@@ -4,14 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
-	"github.com/cristosal/dbx"
-	"github.com/jackc/pgx/v5"
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/checkout/session"
-	"github.com/stripe/stripe-go/v74/product"
 )
 
 const ProviderStripe = "stripe"
@@ -66,19 +62,19 @@ func (s *StripeService) Init(ctx context.Context) error {
 
 // Sync repository data with stripe
 func (s *StripeService) Sync() error {
-	if err := s.SyncCustomers(); err != nil {
+	if err := s.syncCustomers(); err != nil {
 		return fmt.Errorf("error syncing customers: %w", err)
 	}
 
-	if err := s.SyncPlans(); err != nil {
+	if err := s.syncPlans(); err != nil {
 		return fmt.Errorf("error syncing plans: %w", err)
 	}
 
-	if err := s.SyncPrices(context.Background()); err != nil {
+	if err := s.syncPrices(context.Background()); err != nil {
 		return fmt.Errorf("error syncing prices: %w", err)
 	}
 
-	if err := s.SyncSubscriptions(); err != nil {
+	if err := s.syncSubscriptions(); err != nil {
 		return fmt.Errorf("error syncing subscriptions: %w", err)
 	}
 
@@ -121,65 +117,45 @@ func (s *StripeService) VerifyCheckout(sessionID string) error {
 
 // CheckoutRequest
 type CheckoutRequest struct {
-	UserID      dbx.ID `json:"user_id"`
-	Plan        string `json:"plan"`
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	Phone       string `json:"phone"`
+	CustomerID  int64
+	PriceID     int64
 	RedirectURL string `json:"redirect_url"`
 }
 
 // Checkout returns the url that a user has to visit in order to complete payment
 // it registers the customer if it was unavailable
-func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
-	cust, err := s.addCustomer(req.Name, req.Email)
-	if errors.Is(err, ErrNotFound) {
-		err = nil
-	}
-
+func (s *StripeService) Checkout(request *CheckoutRequest) (url string, err error) {
+	customer, err := s.Entities().GetCustomerByID(request.CustomerID)
 	if err != nil {
 		return
 	}
 
-	pl, err := s.Entities().GetPlanByName(req.Plan)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return "", ErrNotFound
-	}
-
+	price, err := s.Entities().GetPriceByID(request.PriceID)
 	if err != nil {
 		return
-	}
-
-	prod, err := product.Get(pl.ProviderID, nil)
-	if err != nil {
-		return "", ErrNotFound
 	}
 
 	var trialEnd *int64 = nil
 
-	if pl.TrialDays > 0 {
+	if price.TrialDays > 0 {
 		// we add one day of grace so that stripe displays the correct amount.
 		// since trial end is calculated from current time, being one second off will result in days -1 being displayed in stripe checkout
-		trialEnd = stripe.Int64(pl.TrialEnd().Add(time.Hour * 24).Unix())
+		trialEnd = stripe.Int64(price.TrialEnd().Add(time.Hour * 24).Unix())
 	}
 
 	params := &stripe.CheckoutSessionParams{
-		Customer:                stripe.String(cust.ProviderID),
-		SuccessURL:              stripe.String(req.RedirectURL),
-		ClientReferenceID:       stripe.String(strconv.FormatInt(int64(req.UserID), 10)),
+		Customer:                stripe.String(customer.ProviderID),
+		SuccessURL:              stripe.String(request.RedirectURL),
 		Mode:                    stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		PaymentMethodCollection: stripe.String("if_required"),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				Price:    stripe.String(prod.DefaultPrice.ID),
+				Price:    stripe.String(price.ProviderID),
 				Quantity: stripe.Int64(1),
 			},
 		},
 		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
 			TrialEnd: trialEnd,
-			Metadata: map[string]string{
-				"user_id": req.UserID.String(),
-			},
 		},
 	}
 
@@ -190,4 +166,22 @@ func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
 
 	url = sess.URL
 	return
+}
+
+func (StripeService) getPricing(p *stripe.Price) string {
+	switch p.Type {
+	case stripe.PriceTypeOneTime:
+		return PricingOnce
+	case stripe.PriceTypeRecurring:
+		switch p.Recurring.Interval {
+		case stripe.PriceRecurringIntervalMonth:
+			return PricingMonthly
+		case stripe.PriceRecurringIntervalYear:
+			return PricingAnnual
+		default:
+			return ""
+		}
+	default:
+		return ""
+	}
 }
