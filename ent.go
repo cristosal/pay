@@ -18,6 +18,16 @@ type Price struct {
 	Amount     int64  // in lowest common denominator
 	Currency   string // three letter currency code
 	Schedule   string // one of PricingAnnual | PricingMonthly | PricingOnce
+	TrialDays  int
+}
+
+func (p *Price) HasTrial() bool {
+	return p.TrialDays > 0
+}
+
+// TrialEnd returns the time at which the trial would end if it started now
+func (p *Price) TrialEnd() time.Time {
+	return time.Now().Add(time.Hour * 24 * time.Duration(p.TrialDays))
 }
 
 // Plan
@@ -26,23 +36,12 @@ type Plan struct {
 	Name       string
 	Provider   string
 	ProviderID string
-	TrialDays  int64
 	Active     bool
 	Features   []string
 }
 
 func (p *Plan) Table() string {
 	return "pay.plan"
-}
-
-// HasTrial returns true if plan has a set amount of trial days
-func (p *Plan) HasTrial() bool {
-	return p.TrialDays > 0
-}
-
-// TrialEnd returns the time at which the trial would end if it started now
-func (p *Plan) TrialEnd() time.Time {
-	return time.Now().Add(time.Hour * 24 * time.Duration(p.TrialDays))
 }
 
 // Customer represents a paying customer attached to a third party service like stripe or paypal
