@@ -33,7 +33,6 @@ type (
 
 // NewStripeProvider creates a provider service for interacting with stripe
 func NewStripeProvider(config *StripeConfig) *StripeService {
-
 	if config == nil {
 		config = new(StripeConfig)
 	}
@@ -55,27 +54,6 @@ func (s *StripeService) Init(ctx context.Context) error {
 
 	if err := s.WebhookEvents().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing stripe event store: %w", err)
-	}
-
-	return nil
-}
-
-// Sync repository data with stripe
-func (s *StripeService) Sync() error {
-	if err := s.syncCustomers(); err != nil {
-		return fmt.Errorf("error syncing customers: %w", err)
-	}
-
-	if err := s.syncPlans(); err != nil {
-		return fmt.Errorf("error syncing plans: %w", err)
-	}
-
-	if err := s.syncPrices(context.Background()); err != nil {
-		return fmt.Errorf("error syncing prices: %w", err)
-	}
-
-	if err := s.syncSubscriptions(); err != nil {
-		return fmt.Errorf("error syncing subscriptions: %w", err)
 	}
 
 	return nil
@@ -168,7 +146,8 @@ func (s *StripeService) Checkout(request *CheckoutRequest) (url string, err erro
 	return
 }
 
-func (StripeService) getPricing(p *stripe.Price) string {
+// this should go here
+func (StripeService) convertPricingSchedule(p *stripe.Price) PricingSchedule {
 	switch p.Type {
 	case stripe.PriceTypeOneTime:
 		return PricingOnce

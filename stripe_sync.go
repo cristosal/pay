@@ -2,6 +2,7 @@ package pay
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/stripe/stripe-go/v74"
@@ -10,6 +11,27 @@ import (
 	"github.com/stripe/stripe-go/v74/product"
 	"github.com/stripe/stripe-go/v74/subscription"
 )
+
+// Sync repository data with stripe
+func (s *StripeService) Sync() error {
+	if err := s.syncCustomers(); err != nil {
+		return fmt.Errorf("error syncing customers: %w", err)
+	}
+
+	if err := s.syncPlans(); err != nil {
+		return fmt.Errorf("error syncing plans: %w", err)
+	}
+
+	if err := s.syncPrices(context.Background()); err != nil {
+		return fmt.Errorf("error syncing prices: %w", err)
+	}
+
+	if err := s.syncSubscriptions(); err != nil {
+		return fmt.Errorf("error syncing subscriptions: %w", err)
+	}
+
+	return nil
+}
 
 func (s *StripeService) syncPrices(ctx context.Context) error {
 	it := price.List(nil)
@@ -28,7 +50,7 @@ func (s *StripeService) syncPrices(ctx context.Context) error {
 			Provider:   ProviderStripe,
 			ProviderID: p.ID,
 			Currency:   string(p.Currency),
-			Schedule:   s.getPricing(p),
+			Schedule:   s.convertPricingSchedule(p),
 		}); err != nil {
 			return err
 		}
