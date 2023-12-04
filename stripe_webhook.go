@@ -43,6 +43,10 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 				err = s.handleCustomerDeleted(event.Data)
 			case "customer.subscription.created":
 				err = s.handleSubscriptionCreated(event.Data)
+			case "customer.subscription.updated":
+				err = s.handleSubscriptionUpdated(event.Data)
+			case "customer.subscription.deleted":
+				err = s.handleSubscriptionDeleted(event.Data)
 			}
 
 			if err != nil {
@@ -101,6 +105,34 @@ func (s *StripeService) handleSubscriptionCreated(data *stripe.EventData) error 
 	}
 
 	return s.Entities().AddSubscription(subscr)
+}
+
+func (s *StripeService) handleSubscriptionUpdated(data *stripe.EventData) error {
+	var sub stripe.Subscription
+	if err := sub.UnmarshalJSON(data.Raw); err != nil {
+		return err
+	}
+
+	subscr, err := s.convertSubscription(&sub)
+	if err != nil {
+		return err
+	}
+
+	return s.Entities().UpdateSubscriptionByProvider(subscr)
+}
+
+func (s *StripeService) handleSubscriptionDeleted(data *stripe.EventData) error {
+	var sub stripe.Subscription
+	if err := sub.UnmarshalJSON(data.Raw); err != nil {
+		return err
+	}
+
+	subscr, err := s.convertSubscription(&sub)
+	if err != nil {
+		return err
+	}
+
+	return s.Entities().RemoveSubscriptionByProvider(subscr)
 }
 
 func (s *StripeService) handleCustomerCreated(data *stripe.EventData) error {
