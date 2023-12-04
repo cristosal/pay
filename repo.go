@@ -61,6 +61,24 @@ func (r *EntityRepo) Init(ctx context.Context) error {
 	return err
 }
 
+// GetPriceByID returns the price by a given id
+func (r *EntityRepo) GetPriceByID(priceID int64) (*Price, error) {
+	var p Price
+	if err := dbx.One(r.db, &p, "WHERE id = $1", priceID); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// GetPricesByPlanID returns the planID
+func (r *EntityRepo) GetPricesByPlanID(planID int64) ([]Price, error) {
+	var p []Price
+	if err := dbx.Many(r.db, &p, "WHERE plan_id = $1", planID); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
 // Destroy removes all tables and relationships
 func (r *EntityRepo) Destroy(ctx context.Context) error {
 	m := migra.New(r.db).
@@ -76,14 +94,24 @@ func (r *EntityRepo) AddPrice(p *Price) error {
 	return dbx.Insert(r.db, p)
 }
 
+func (r *EntityRepo) UpdatePriceByProvider(p *Price) error {
+	return dbx.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2",
+		p.Provider, p.ProviderID)
+}
+
 // RemovePrice deletes price from repository
 func (r *EntityRepo) RemovePrice(p *Price) error {
-	return dbx.Exec(r.db, "DELETE from price WHERE id = $1", p.ID)
+	return dbx.Exec(r.db, "DELETE FROM price WHERE id = $1", p.ID)
+}
+
+// RemovePrice deletes price from repository
+func (r *EntityRepo) RemovePriceByProvider(p *Price) error {
+	return dbx.Exec(r.db, "DELETE FROM price WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
 }
 
 // ClearCustomers removes all customers from the database
 func (r *EntityRepo) ClearCustomers() error {
-	return dbx.Exec(r.db, "delete from customer")
+	return dbx.Exec(r.db, "DELETE FROM customer")
 }
 
 // GetCustomerByID returns the customer by its id field
@@ -120,6 +148,11 @@ func (r *EntityRepo) UpdateCustomerByID(c *Customer) error {
 	return dbx.UpdateByID(r.db, c)
 }
 
+// UpdateCustomerByProvider updates a given customer by id field
+func (r *EntityRepo) UpdateCustomerByProvider(c *Customer) error {
+	return dbx.Update(r.db, c, "WHERE provider = $1 AND provider_id = $2", c.Provider, c.ProviderID)
+}
+
 // AddCustomer inserts a customer into the repository
 func (r *EntityRepo) AddCustomer(c *Customer) error {
 	return dbx.Insert(r.db, c)
@@ -146,8 +179,8 @@ func (r *EntityRepo) AddPlan(p *Plan) error {
 }
 
 // RemovePlanByProviderID deletes a plan by provider id from the repository
-func (r *EntityRepo) RemovePlanByProviderID(providerID string) error {
-	return dbx.Exec(r.db, "DELETE FROM plan WHERE provider_id = $1", providerID)
+func (r *EntityRepo) RemovePlanByProvider(provider, providerID string) error {
+	return dbx.Exec(r.db, "DELETE FROM plan WHERE provider = $1 AND provider_id = $2", provider, providerID)
 }
 
 // UpdatePlanByID updates the plan matching the id field
@@ -163,7 +196,7 @@ func (r *EntityRepo) UpdatePlanByProvider(p *Plan) error {
 // GetPlanByID returns the plan matching the internal id
 func (r *EntityRepo) GetPlanByID(id int64) (*Plan, error) {
 	var p Plan
-	if err := dbx.One(r.db, &p, "where id = $1", id); err != nil {
+	if err := dbx.One(r.db, &p, "WHERE id = $1", id); err != nil {
 		return nil, err
 	}
 	return &p, nil

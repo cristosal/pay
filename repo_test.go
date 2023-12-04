@@ -42,13 +42,10 @@ func TestPlansAndPricing(t *testing.T) {
 		_ = r.Destroy(ctx)
 	})
 
-	pl := 
-
 	if err := r.AddPlan(&pay.Plan{
 		Name:       "Test Plan",
 		Provider:   "test",
 		ProviderID: "1",
-		TrialDays:  7,
 		Active:     true,
 	}); err != nil {
 		t.Fatal(err)
