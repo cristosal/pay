@@ -6,8 +6,8 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/cristosal/dbx"
 	"github.com/cristosal/migra"
+	"github.com/cristosal/orm"
 )
 
 // DefaultSchema where tables will be stored can be overriden using
@@ -64,7 +64,7 @@ func (r *EntityRepo) Init(ctx context.Context) error {
 // GetPriceByID returns the price by a given id
 func (r *EntityRepo) GetPriceByID(priceID int64) (*Price, error) {
 	var p Price
-	if err := dbx.One(r.db, &p, "WHERE id = $1", priceID); err != nil {
+	if err := orm.One(r.db, &p, "WHERE id = $1", priceID); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -73,7 +73,7 @@ func (r *EntityRepo) GetPriceByID(priceID int64) (*Price, error) {
 // GetPriceByID returns the price by a given id
 func (r *EntityRepo) GetPriceByProvider(provider, providerID string) (*Price, error) {
 	var p Price
-	if err := dbx.One(r.db, &p, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
+	if err := orm.One(r.db, &p, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -82,7 +82,7 @@ func (r *EntityRepo) GetPriceByProvider(provider, providerID string) (*Price, er
 // GetPricesByPlanID returns the planID
 func (r *EntityRepo) GetPricesByPlanID(planID int64) ([]Price, error) {
 	var p []Price
-	if err := dbx.Many(r.db, &p, "WHERE plan_id = $1", planID); err != nil {
+	if err := orm.Many(r.db, &p, "WHERE plan_id = $1", planID); err != nil {
 		return nil, err
 	}
 	return p, nil
@@ -100,34 +100,34 @@ func (r *EntityRepo) Destroy(ctx context.Context) error {
 
 // AddPrice to plan
 func (r *EntityRepo) AddPrice(p *Price) error {
-	return dbx.Insert(r.db, p)
+	return orm.Insert(r.db, p)
 }
 
 // UpdatePriceByProvider
 func (r *EntityRepo) UpdatePriceByProvider(p *Price) error {
-	return dbx.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2",
+	return orm.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2",
 		p.Provider, p.ProviderID)
 }
 
 // RemovePrice deletes price from repository
 func (r *EntityRepo) RemovePrice(p *Price) error {
-	return dbx.Exec(r.db, "DELETE FROM pay.price WHERE id = $1", p.ID)
+	return orm.Exec(r.db, "DELETE FROM pay.price WHERE id = $1", p.ID)
 }
 
 // RemovePrice deletes price from repository
 func (r *EntityRepo) RemovePriceByProvider(p *Price) error {
-	return dbx.Exec(r.db, "DELETE FROM pay.price WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
+	return orm.Exec(r.db, "DELETE FROM pay.price WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
 }
 
 // ClearCustomers removes all customers from the database
 func (r *EntityRepo) ClearCustomers() error {
-	return dbx.Exec(r.db, "DELETE FROM pay.customer")
+	return orm.Exec(r.db, "DELETE FROM pay.customer")
 }
 
 // GetCustomerByID returns the customer by its id field
 func (r *EntityRepo) GetCustomerByID(id int64) (*Customer, error) {
 	var c Customer
-	if err := dbx.One(r.db, &c, "WHERE id = $1", id); err != nil {
+	if err := orm.One(r.db, &c, "WHERE id = $1", id); err != nil {
 		return nil, err
 	}
 	return &c, nil
@@ -136,7 +136,7 @@ func (r *EntityRepo) GetCustomerByID(id int64) (*Customer, error) {
 // GetCustomerByEmail returns the customer with a given email
 func (r *EntityRepo) GetCustomerByEmail(email string) (*Customer, error) {
 	var c Customer
-	if err := dbx.One(r.db, &c, "WHERE email = $1", email); err != nil {
+	if err := orm.One(r.db, &c, "WHERE email = $1", email); err != nil {
 		return nil, err
 	}
 	return &c, nil
@@ -146,7 +146,7 @@ func (r *EntityRepo) GetCustomerByEmail(email string) (*Customer, error) {
 // Provider id refers to the id given to the customer by an external provider such as stripe or paypal.
 func (r *EntityRepo) GetCustomerByProvider(provider, providerID string) (*Customer, error) {
 	var c Customer
-	if err := dbx.One(r.db, &c, "WHERE provider_id = $1 AND provider = $2", providerID, provider); err != nil {
+	if err := orm.One(r.db, &c, "WHERE provider_id = $1 AND provider = $2", providerID, provider); err != nil {
 		return nil, err
 	}
 
@@ -155,28 +155,28 @@ func (r *EntityRepo) GetCustomerByProvider(provider, providerID string) (*Custom
 
 // UpdateCustomerByID updates a given customer by id field
 func (r *EntityRepo) UpdateCustomerByID(c *Customer) error {
-	return dbx.UpdateByID(r.db, c)
+	return orm.UpdateByID(r.db, c)
 }
 
 // UpdateCustomerByProvider updates a given customer by id field
 func (r *EntityRepo) UpdateCustomerByProvider(c *Customer) error {
-	return dbx.Update(r.db, c, "WHERE provider = $1 AND provider_id = $2", c.Provider, c.ProviderID)
+	return orm.Update(r.db, c, "WHERE provider = $1 AND provider_id = $2", c.Provider, c.ProviderID)
 }
 
 // AddCustomer inserts a customer into the repository
 func (r *EntityRepo) AddCustomer(c *Customer) error {
-	return dbx.Insert(r.db, c)
+	return orm.Insert(r.db, c)
 }
 
 // RemoveCustomerByProviderID removes customer by given provider
 func (r *EntityRepo) DeleteCustomerByProvider(provider, providerID string) error {
-	return dbx.Exec(r.db, "DELETE FROM pay.customer WHERE provider = $1 AND provider_id = $2", provider, providerID)
+	return orm.Exec(r.db, "DELETE FROM pay.customer WHERE provider = $1 AND provider_id = $2", provider, providerID)
 }
 
 // ListPlans returns a list of all active plans
 func (r *EntityRepo) ListPlans() ([]Plan, error) {
 	var plans []Plan
-	if err := dbx.Many(r.db, &plans, "WHERE active = true ORDER BY price ASC"); err != nil {
+	if err := orm.Many(r.db, &plans, "WHERE active = true ORDER BY price ASC"); err != nil {
 		return nil, err
 	}
 
@@ -185,28 +185,28 @@ func (r *EntityRepo) ListPlans() ([]Plan, error) {
 
 // AddPlan adds a plan to the repository
 func (r *EntityRepo) AddPlan(p *Plan) error {
-	return dbx.Insert(r.db, p)
+	return orm.Insert(r.db, p)
 }
 
 // RemovePlanByProviderID deletes a plan by provider id from the repository
 func (r *EntityRepo) RemovePlanByProvider(provider, providerID string) error {
-	return dbx.Exec(r.db, "DELETE FROM pay.plan WHERE provider = $1 AND provider_id = $2", provider, providerID)
+	return orm.Exec(r.db, "DELETE FROM pay.plan WHERE provider = $1 AND provider_id = $2", provider, providerID)
 }
 
 // UpdatePlanByID updates the plan matching the id field
 func (r *EntityRepo) UpdatePlanByID(p *Plan) error {
-	return dbx.UpdateByID(r.db, p)
+	return orm.UpdateByID(r.db, p)
 }
 
 // UpdatePlanByProvider updates the plan matching the provider and provider id
 func (r *EntityRepo) UpdatePlanByProvider(p *Plan) error {
-	return dbx.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
+	return orm.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
 }
 
 // GetPlanByID returns the plan matching the internal id
 func (r *EntityRepo) GetPlanByID(id int64) (*Plan, error) {
 	var p Plan
-	if err := dbx.One(r.db, &p, "WHERE id = $1", id); err != nil {
+	if err := orm.One(r.db, &p, "WHERE id = $1", id); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -216,7 +216,7 @@ func (r *EntityRepo) GetPlanByID(id int64) (*Plan, error) {
 func (r *EntityRepo) GetPlanByProvider(provider, providerID string) (*Plan, error) {
 	var p Plan
 
-	if err := dbx.One(r.db, &p, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
+	if err := orm.One(r.db, &p, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
 		return nil, err
 	}
 
@@ -226,7 +226,7 @@ func (r *EntityRepo) GetPlanByProvider(provider, providerID string) (*Plan, erro
 // GetPlanByName returns the plan with given name
 func (r *EntityRepo) GetPlanByName(name string) (*Plan, error) {
 	var p Plan
-	if err := dbx.One(r.db, &p, "WHERE name = $1", name); err != nil {
+	if err := orm.One(r.db, &p, "WHERE name = $1", name); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -247,7 +247,7 @@ func (r *EntityRepo) GetPlanByCustomerEmail(email string) (*Plan, error) {
 		s.customer_id = c.id AND c.email = $1`
 
 	var p Plan
-	if err := dbx.QueryRow(r.db, &p, sql, email); err != nil {
+	if err := orm.QueryRow(r.db, &p, sql, email); err != nil {
 		return nil, err
 	}
 
@@ -255,29 +255,29 @@ func (r *EntityRepo) GetPlanByCustomerEmail(email string) (*Plan, error) {
 }
 
 func (r *EntityRepo) RemovePriceByID(id int) error {
-	return dbx.Exec(r.db, "DELETE FROM pay.price WHERE id = $1")
+	return orm.Exec(r.db, "DELETE FROM pay.price WHERE id = $1")
 
 }
 
 func (r *EntityRepo) AddSubscription(s *Subscription) error {
-	return dbx.Insert(r.db, s)
+	return orm.Insert(r.db, s)
 }
 
 func (r *EntityRepo) UpdateSubscriptionByID(s *Subscription) error {
-	return dbx.UpdateByID(r.db, s)
+	return orm.UpdateByID(r.db, s)
 }
 
 func (r *EntityRepo) UpdateSubscriptionByProvider(s *Subscription) error {
-	return dbx.Update(r.db, s, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID)
+	return orm.Update(r.db, s, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID)
 }
 
 func (r *EntityRepo) RemoveSubscriptionByProvider(s *Subscription) error {
-	return dbx.Exec(r.db, "DELETE FROM pay.subscription WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID)
+	return orm.Exec(r.db, "DELETE FROM pay.subscription WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID)
 }
 
 func (r *EntityRepo) GetSubscriptionByCustomerID(customerID int64) ([]Subscription, error) {
 	var s []Subscription
-	if err := dbx.Many(r.db, &s, "where customer_id = $1", customerID); err != nil {
+	if err := orm.Many(r.db, &s, "where customer_id = $1", customerID); err != nil {
 		return nil, err
 	}
 	return s, nil
@@ -285,7 +285,7 @@ func (r *EntityRepo) GetSubscriptionByCustomerID(customerID int64) ([]Subscripti
 
 func (r *EntityRepo) GetSubscriptionByPlanID(planID int64) (*Subscription, error) {
 	var s Subscription
-	if err := dbx.One(r.db, &s, "where plan_id = $1", planID); err != nil {
+	if err := orm.One(r.db, &s, "where plan_id = $1", planID); err != nil {
 		return nil, err
 	}
 
@@ -294,7 +294,7 @@ func (r *EntityRepo) GetSubscriptionByPlanID(planID int64) (*Subscription, error
 
 func (r *EntityRepo) GetSubscriptionByProviderID(providerID string) (*Subscription, error) {
 	var s Subscription
-	if err := dbx.One(r.db, &s, "where provider_id = $1", providerID); err != nil {
+	if err := orm.One(r.db, &s, "where provider_id = $1", providerID); err != nil {
 		return nil, err
 	}
 

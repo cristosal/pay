@@ -235,7 +235,7 @@ func (StripeService) convertCustomer(c *stripe.Customer) *Customer {
 	}
 }
 
-func (s *StripeService) convertProduct(p *stripe.Product) *Plan {
+func (StripeService) convertProduct(p *stripe.Product) *Plan {
 	return &Plan{
 		Name:        p.Name,
 		Description: p.Description,
