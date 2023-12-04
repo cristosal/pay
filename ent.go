@@ -13,13 +13,13 @@ const (
 )
 
 type Price struct {
-	ID         int64 // internal identifier
-	PlanID     int64 // id of associated plan
+	ID         int64
+	PlanID     int64
 	Provider   string
 	ProviderID string
-	Amount     int64           // in lowest common denominator
-	Currency   string          // three letter currency code
-	Schedule   PricingSchedule // one of PricingAnnual | PricingMonthly | PricingOnce
+	Amount     int64
+	Currency   string
+	Schedule   PricingSchedule
 	TrialDays  int
 }
 
