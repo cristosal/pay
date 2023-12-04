@@ -89,8 +89,151 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 	}
 }
 
-// convert subscription types
-func (s StripeService) convertSubscription(sub *stripe.Subscription) (*Subscription, error) {
+func (s *StripeService) handleSubscriptionCreated(data *stripe.EventData) error {
+	var sub stripe.Subscription
+	if err := sub.UnmarshalJSON(data.Raw); err != nil {
+		return err
+	}
+
+	subscr, err := s.convertSubscription(&sub)
+	if err != nil {
+		return err
+	}
+
+	return s.Entities().AddSubscription(subscr)
+}
+
+func (s *StripeService) handleCustomerCreated(data *stripe.EventData) error {
+	var c stripe.Customer
+	if err := json.Unmarshal(data.Raw, &c); err != nil {
+		return err
+	}
+	return s.Entities().AddCustomer(s.convertCustomer(&c))
+}
+
+func (s *StripeService) handleCustomerUpdated(data *stripe.EventData) error {
+	var c stripe.Customer
+	if err := json.Unmarshal(data.Raw, &c); err != nil {
+		return err
+	}
+
+	return s.Entities().UpdateCustomerByProvider(s.convertCustomer(&c))
+}
+
+func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
+	var c stripe.Customer
+	if err := json.Unmarshal(data.Raw, &c); err != nil {
+		return err
+	}
+	return s.Entities().DeleteCustomerByProvider(ProviderStripe, c.ID)
+}
+
+func (s *StripeService) handlePriceCreated(data *stripe.EventData) error {
+	var p stripe.Price
+	if err := json.Unmarshal(data.Raw, &p); err != nil {
+		return err
+	}
+
+	pr, err := s.convertPrice(&p)
+	if err != nil {
+		return err
+	}
+
+	return s.Entities().AddPrice(pr)
+}
+
+func (s *StripeService) handlePriceUpdated(data *stripe.EventData) error {
+	var p stripe.Price
+	if err := json.Unmarshal(data.Raw, &p); err != nil {
+		return err
+	}
+
+	pr, err := s.convertPrice(&p)
+	if err != nil {
+		return err
+	}
+
+	return s.Entities().UpdatePriceByProvider(pr)
+}
+
+func (s *StripeService) handlePriceDeleted(data *stripe.EventData) error {
+	var p stripe.Price
+	if err := json.Unmarshal(data.Raw, &p); err != nil {
+		return err
+	}
+
+	return s.Entities().RemovePriceByProvider(&Price{
+		Provider:   ProviderStripe,
+		ProviderID: p.ID,
+	})
+}
+
+func (s *StripeService) handleProductCreated(data *stripe.EventData) error {
+	var p stripe.Product
+	if err := json.Unmarshal(data.Raw, &p); err != nil {
+		return err
+	}
+
+	return s.Entities().AddPlan(s.convertProduct(&p))
+}
+
+func (s *StripeService) handleProductUpdated(data *stripe.EventData) error {
+	var p stripe.Product
+	if err := json.Unmarshal(data.Raw, &p); err != nil {
+		return err
+	}
+
+	return s.Entities().UpdatePlanByProvider(s.convertProduct(&p))
+}
+
+func (s *StripeService) handleProductDeleted(data *stripe.EventData) error {
+	var p stripe.Product
+	if err := json.Unmarshal(data.Raw, &p); err != nil {
+		return err
+	}
+	return s.Entities().RemovePlanByProvider(ProviderStripe, p.ID)
+}
+
+func (StripeService) convertCustomer(c *stripe.Customer) *Customer {
+	return &Customer{
+		ProviderID: c.ID,
+		Provider:   ProviderStripe,
+		Name:       c.Name,
+		Email:      c.Email,
+	}
+}
+
+func (s *StripeService) convertProduct(p *stripe.Product) *Plan {
+	return &Plan{
+		Name:        p.Name,
+		Description: p.Description,
+		Provider:    ProviderStripe,
+		ProviderID:  p.ID,
+		Active:      p.Active,
+		Features:    p.Attributes,
+	}
+}
+
+func (s *StripeService) convertPrice(p *stripe.Price) (*Price, error) {
+	pl, err := s.Entities().GetPlanByProvider(ProviderStripe, p.Product.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	pr := &Price{
+		Provider:   ProviderStripe,
+		ProviderID: p.ID,
+		Amount:     p.UnitAmount,
+		Currency:   string(p.Currency),
+		Schedule:   s.convertPricingSchedule(p),
+		TrialDays:  int(p.Recurring.TrialPeriodDays), // TODO: check if this is actually sent through in the webhook
+		PlanID:     pl.ID,
+	}
+
+	return pr, nil
+}
+
+func (s *StripeService) convertSubscription(sub *stripe.Subscription) (*Subscription, error) {
 	// ensure that the first item is a subscription
 	if sub.Items == nil ||
 		len(sub.Items.Data) == 0 ||
@@ -119,144 +262,4 @@ func (s StripeService) convertSubscription(sub *stripe.Subscription) (*Subscript
 	}
 
 	return &subscr, nil
-
-	// subscription is done to a price so we have to note that
-}
-
-func (s *StripeService) handleSubscriptionCreated(data *stripe.EventData) error {
-	var sub stripe.Subscription
-	if err := sub.UnmarshalJSON(data.Raw); err != nil {
-		return err
-	}
-
-	subscr, err := s.convertSubscription(&sub)
-	if err != nil {
-		return err
-	}
-
-	return s.Entities().AddSubscription(subscr)
-}
-
-func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
-	var c stripe.Customer
-	if err := json.Unmarshal(data.Raw, &c); err != nil {
-		return err
-	}
-	return s.Entities().DeleteCustomerByProvider(ProviderStripe, c.ID)
-}
-
-func (StripeService) custconv(c *stripe.Customer) *Customer {
-	return &Customer{
-		ProviderID: c.ID,
-		Provider:   ProviderStripe,
-		Name:       c.Name,
-		Email:      c.Email,
-	}
-}
-
-func (s *StripeService) handleCustomerCreated(data *stripe.EventData) error {
-	var c stripe.Customer
-	if err := json.Unmarshal(data.Raw, &c); err != nil {
-		return err
-	}
-	return s.Entities().AddCustomer(s.custconv(&c))
-}
-
-func (s *StripeService) handleCustomerUpdated(data *stripe.EventData) error {
-	var c stripe.Customer
-	if err := json.Unmarshal(data.Raw, &c); err != nil {
-		return err
-	}
-	return s.Entities().UpdateCustomerByProvider(&Customer{
-		ProviderID: c.ID,
-		Provider:   ProviderStripe,
-		Name:       c.Name,
-		Email:      c.Email,
-	})
-}
-
-func (s *StripeService) handlePriceDeleted(data *stripe.EventData) error {
-	var p stripe.Price
-	if err := json.Unmarshal(data.Raw, &p); err != nil {
-		return err
-	}
-	return s.Entities().RemovePriceByProvider(&Price{
-		Provider:   ProviderStripe,
-		ProviderID: p.ID,
-	})
-}
-
-func (s *StripeService) handlePriceUpdated(data *stripe.EventData) error {
-	var p stripe.Price
-	if err := json.Unmarshal(data.Raw, &p); err != nil {
-		return err
-	}
-
-	pl, err := s.Entities().GetPlanByProvider(ProviderStripe, p.Product.ID)
-	if err != nil {
-		return err
-	}
-	return s.Entities().UpdatePriceByProvider(&Price{
-		Provider:   ProviderStripe,
-		ProviderID: p.ID,
-		Amount:     p.UnitAmount,
-		Currency:   string(p.Currency),
-		Schedule:   s.getPricing(&p),
-		TrialDays:  int(p.Recurring.TrialPeriodDays), // TODO: check if this is actually sent through in the webhook
-		PlanID:     pl.ID,
-	})
-}
-
-func (s *StripeService) handlePriceCreated(data *stripe.EventData) error {
-	var p stripe.Price
-	if err := json.Unmarshal(data.Raw, &p); err != nil {
-		return err
-	}
-	pl, err := s.Entities().GetPlanByProvider(ProviderStripe, p.Product.ID)
-	if err != nil {
-		return err
-	}
-	return s.Entities().AddPrice(&Price{
-		Provider:   ProviderStripe,
-		ProviderID: p.ID,
-		Amount:     p.UnitAmount,
-		Currency:   string(p.Currency),
-		Schedule:   s.getPricing(&p),
-		TrialDays:  int(p.Recurring.TrialPeriodDays), // TODO: check if this is actually sent through in the webhook
-		PlanID:     pl.ID,
-	})
-}
-
-func (s *StripeService) handleProductCreated(data *stripe.EventData) error {
-	var p stripe.Product
-	if err := json.Unmarshal(data.Raw, &p); err != nil {
-		return err
-	}
-	return s.Entities().AddPlan(&Plan{
-		Name:       p.Name,
-		Provider:   ProviderStripe,
-		ProviderID: p.ID,
-		Active:     p.Active,
-	})
-}
-
-func (s *StripeService) handleProductDeleted(data *stripe.EventData) error {
-	var p stripe.Product
-	if err := json.Unmarshal(data.Raw, &p); err != nil {
-		return err
-	}
-	return s.Entities().RemovePlanByProvider(ProviderStripe, p.ID)
-}
-
-func (s *StripeService) handleProductUpdated(data *stripe.EventData) error {
-	var p stripe.Product
-	if err := json.Unmarshal(data.Raw, &p); err != nil {
-		return err
-	}
-	return s.Entities().UpdatePlanByProvider(&Plan{
-		Name:       p.Name,
-		Provider:   ProviderStripe,
-		ProviderID: p.ID,
-		Active:     p.Active,
-	})
 }
