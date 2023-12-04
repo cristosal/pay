@@ -3,25 +3,9 @@ package pay
 import (
 	"encoding/json"
 	"errors"
-	"log"
 
 	"github.com/stripe/stripe-go/v74"
-	"github.com/stripe/stripe-go/v74/subscription"
 )
-
-// SyncSubscriptions pulls in all subscriptions from stripe
-func (s *StripeService) SyncSubscriptions() error {
-	it := subscription.List(nil)
-	for it.Next() {
-		sub := it.Subscription()
-
-		if err := s.saveSubscription(sub); err != nil {
-			log.Printf("error while syncing subscriptions: %v", err)
-		}
-	}
-
-	return it.Err()
-}
 
 // handleSubscriptionEvent updates or adds an internal representation of stripe event
 func (s *StripeService) handleSubscriptionEvent(e *stripe.Event) error {
