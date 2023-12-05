@@ -66,13 +66,14 @@ var migrations = []orm.Migration{
 		);`,
 		Down: "DROP TABLE {{ .Schema }}.subscription",
 	}, {
-		Name:        "webhook events",
+		Name:        "webhook event table",
 		Description: "create webhook events table",
-		Up: `CREATE TABLE {{ .Schema }}.webhook_events (
-			event_id VARCHAR(255) NOT NULL PRIMARY KEY,
+		Up: `CREATE TABLE {{ .Schema }}.webhook_event (
+			id SERIAL PRIMARY KEY,
+			provider VARCHAR(255) NOT NULL,
+			provider_id VARCHAR(255) NOT NULL,
 			event_type VARCHAR(255) NOT NULL,
 			payload JSONB NOT NULL,
-			processed BOOL NOT NULL DEFAULT FALSE
 		);`,
 		Down: "DROP TABLE {{ .Schema }}.webhook_events",
 	},

@@ -73,3 +73,15 @@ type Subscription struct {
 func (s *Subscription) TableName() string {
 	return "pay.subscription"
 }
+
+type WebhookEvent struct {
+	ID         int64
+	Provider   string
+	ProviderID string
+	EventType  string
+	Payload    []byte
+}
+
+func (e *WebhookEvent) TableName() string {
+	return "pay.webhook_event"
+}

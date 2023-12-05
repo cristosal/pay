@@ -76,13 +76,18 @@ func (s *StripeProvider) Webhook() http.HandlerFunc {
 			return
 		}
 
-		if s.Repo().hasWebhookEvent(event.ID) {
+		if s.Repo().hasWebhookEvent(ProviderStripe, event.ID) {
 			log.Printf("Already processed event with id %s", event.ID)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		if err := s.Repo().addWebhookEvent(event.ID, event.Type, event.Data.Raw); err != nil {
+		if err := s.Repo().addWebhookEvent(&WebhookEvent{
+			Provider:   ProviderStripe,
+			ProviderID: event.ID,
+			EventType:  event.Type,
+			Payload:    event.Data.Raw,
+		}); err != nil {
 			log.Printf("error while saving stripe event: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

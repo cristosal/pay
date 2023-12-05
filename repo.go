@@ -349,13 +349,15 @@ func (r *Repo) GetSubscriptionByProvider(provider, providerID string) (*Subscrip
 	return &s, nil
 }
 
-func (r *Repo) hasWebhookEvent(eventID string) bool {
-	var id string
-	row := r.db.QueryRow("SELECT event_id FROM webhook_events WHERE event_id = $1", eventID)
-	_ = row.Scan(&id)
-	return id != ""
+func (r *Repo) hasWebhookEvent(provider, providerID string) bool {
+	var e WebhookEvent
+	if err := orm.Get(r.db, &e, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
+		return false
+	}
+
+	return e.Provider == provider && e.ProviderID == providerID
 }
 
-func (r *Repo) addWebhookEvent(eventID, eventType string, payload []byte) error {
-	return orm.Exec(r.db, "INSERT INTO webhook_events (event_id, event_type, payload) VALUES ($1, $2, $3)", eventID, eventType, payload)
+func (r *Repo) addWebhookEvent(e *WebhookEvent) error {
+	return orm.Add(r.db, e)
 }
