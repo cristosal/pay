@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/cristosal/migra"
+	"github.com/cristosal/orm"
 	"github.com/stripe/stripe-go/v74"
 )
 
@@ -18,13 +18,11 @@ func NewStripeEventRepo(db *sql.DB) *StripeEventRepo {
 
 // Init table and migrations
 func (s *StripeEventRepo) Init(ctx context.Context) error {
-	m := migra.New(s.db).SetMigrationTable("pay_migrations")
-
-	if err := m.CreateMigrationTable(ctx); err != nil {
+	if err := orm.CreateMigrationTable(s.db); err != nil {
 		return err
 	}
 
-	return m.PushMany(ctx, []migra.Migration{
+	return orm.AddMigrations(s.db, []orm.Migration{
 		{
 			Name:        "stripe_events",
 			Description: "Create stripe_events table",
@@ -49,6 +47,6 @@ func (r *StripeEventRepo) Has(ev *stripe.Event) bool {
 
 // Add inserts the event in the store
 func (r *StripeEventRepo) Add(ev *stripe.Event) error {
-	_, err := r.db.Exec("insert into stripe_events (event_id, event_type, payload) values ($1, $2, $3)", ev.ID, ev.Type, ev.Data)
+	_, err := r.db.Exec("INSERT INTO stripe_events (event_id, event_type, payload) VALUES ($1, $2, $3)", ev.ID, ev.Type, ev.Data)
 	return err
 }
