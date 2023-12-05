@@ -14,15 +14,10 @@ const DefaultSchema = "pay"
 
 // EntityRepo contains methods for storing entities within an sql database
 type EntityRepo struct {
-	db                       *sql.DB
-	migrationTable           string
-	schema                   string
-	subAddedCallbacks        []func(*Subscription)
-	subUpdatedCallbacks      []func(*Subscription, *Subscription)
-	subRemovedCallbacks      []func(*Subscription)
-	customerAddedCallbacks   []func(*Customer)
-	customerUpdatedCallbacks []func(*Customer, *Customer)
-	customerRemovedCallbacks []func(*Customer)
+	Events
+	db             *sql.DB
+	migrationTable string
+	schema         string
 }
 
 // NewEntityRepo is a constructor for *Repo
@@ -36,42 +31,6 @@ func NewEntityRepo(db *sql.DB) *EntityRepo {
 		customerAddedCallbacks:   []func(*Customer){},
 		customerUpdatedCallbacks: []func(*Customer, *Customer){},
 		customerRemovedCallbacks: []func(*Customer){},
-	}
-}
-
-func (r *EntityRepo) subAdded(s *Subscription) {
-	for _, cb := range r.subAddedCallbacks {
-		cb(s)
-	}
-}
-
-func (r *EntityRepo) subUpdated(prev *Subscription, s *Subscription) {
-	for _, cb := range r.subUpdatedCallbacks {
-		cb(prev, s)
-	}
-}
-
-func (r *EntityRepo) subRemoved(s *Subscription) {
-	for _, cb := range r.subRemovedCallbacks {
-		cb(s)
-	}
-}
-
-func (r *EntityRepo) customerAdded(c *Customer) {
-	for _, cb := range r.customerAddedCallbacks {
-		cb(c)
-	}
-}
-
-func (r *EntityRepo) customerUpdated(prev *Customer, s *Customer) {
-	for _, cb := range r.customerUpdatedCallbacks {
-		cb(prev, s)
-	}
-}
-
-func (r *EntityRepo) customerRemoved(c *Customer) {
-	for _, cb := range r.customerRemovedCallbacks {
-		cb(c)
 	}
 }
 
@@ -141,18 +100,38 @@ func (r *EntityRepo) Destroy(ctx context.Context) error {
 
 // AddPrice to plan
 func (r *EntityRepo) AddPrice(p *Price) error {
-	return orm.Add(r.db, p)
+	if err := orm.Add(r.db, p); err != nil {
+		return err
+	}
+	r.priceAdded(p)
+	return nil
 }
 
 // UpdatePriceByProvider
 func (r *EntityRepo) UpdatePriceByProvider(p *Price) error {
-	return orm.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2",
+	var prev *Price
+	_ = orm.Get(r.db, prev, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
+
+	err := orm.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2",
 		p.Provider, p.ProviderID)
+
+	if err != nil {
+		return err
+	}
+
+	r.priceUpdated(prev, p)
+	return nil
 }
 
 // RemovePrice deletes price from repository
 func (r *EntityRepo) RemovePrice(p *Price) error {
-	return orm.Exec(r.db, "DELETE FROM pay.price WHERE id = $1", p.ID)
+	err := orm.Exec(r.db, "DELETE FROM pay.price WHERE id = $1", p.ID)
+	if err != nil {
+		return err
+	}
+
+	r.priceRemoved(p)
+	return nil
 }
 
 // RemovePrice deletes price from repository
@@ -303,7 +282,6 @@ func (r *EntityRepo) AddSubscription(s *Subscription) error {
 	if err := orm.Add(r.db, s); err != nil {
 		return err
 	}
-	r.subAdded(s)
 	return nil
 }
 
