@@ -157,7 +157,7 @@ func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
 	if err := json.Unmarshal(data.Raw, &c); err != nil {
 		return err
 	}
-	return s.Entities().DeleteCustomerByProvider(ProviderStripe, c.ID)
+	return s.Entities().RemoveCustomerByProvider(ProviderStripe, c.ID)
 }
 
 func (s *StripeService) handlePriceCreated(data *stripe.EventData) error {

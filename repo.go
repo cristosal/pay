@@ -3,7 +3,6 @@ package pay
 import (
 	"context"
 	"database/sql"
-	"embed"
 	"fmt"
 
 	"github.com/cristosal/migra"
@@ -12,9 +11,6 @@ import (
 
 // DefaultSchema where tables will be stored can be overriden using
 const DefaultSchema = "pay"
-
-//go:embed migrations
-var migrations embed.FS // directory containing migration files
 
 // EntityRepo contains methods for storing entities within an sql database
 type EntityRepo struct {
@@ -51,7 +47,7 @@ func (r *EntityRepo) Init(ctx context.Context) error {
 		return err
 	}
 
-	if err := orm.AddMigrationDirFS(r.db, migrations, "migrations"); err != nil {
+	if err := orm.AddMigrations(r.db, migrations); err != nil {
 		return err
 	}
 
@@ -166,7 +162,7 @@ func (r *EntityRepo) AddCustomer(c *Customer) error {
 }
 
 // RemoveCustomerByProviderID removes customer by given provider
-func (r *EntityRepo) DeleteCustomerByProvider(provider, providerID string) error {
+func (r *EntityRepo) RemoveCustomerByProvider(provider, providerID string) error {
 	return orm.Exec(r.db, "DELETE FROM pay.customer WHERE provider = $1 AND provider_id = $2", provider, providerID)
 }
 
