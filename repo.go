@@ -14,7 +14,7 @@ const DefaultSchema = "pay"
 
 // EntityRepo contains methods for storing entities within an sql database
 type EntityRepo struct {
-	Events
+	events
 	db             *sql.DB
 	migrationTable string
 	schema         string
