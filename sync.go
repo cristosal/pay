@@ -1,7 +1,6 @@
 package pay
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -23,7 +22,7 @@ func (s *StripeProvider) Sync() error {
 		return fmt.Errorf("error syncing plans: %w", err)
 	}
 
-	if err := s.syncPrices(context.Background()); err != nil {
+	if err := s.syncPrices(); err != nil {
 		return fmt.Errorf("error syncing prices: %w", err)
 	}
 
@@ -34,7 +33,7 @@ func (s *StripeProvider) Sync() error {
 	return nil
 }
 
-func (s *StripeProvider) syncPrices(ctx context.Context) error {
+func (s *StripeProvider) syncPrices() error {
 	it := price.List(nil)
 
 	for it.Next() {
