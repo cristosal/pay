@@ -64,7 +64,7 @@ var migrations = []orm.Migration{
 			FOREIGN KEY (plan_id) REFERENCES {{ .Schema }}.plan (id),
 			UNIQUE (provider, provider_id)
 		);`,
-		Down: "DROP TABLE {{ .Schema }}.subscription",
+		Down: "DROP TABLE {{ .Schema }}.price",
 	}, {
 		Name:        "webhook event table",
 		Description: "create webhook events table",
@@ -75,6 +75,6 @@ var migrations = []orm.Migration{
 			event_type VARCHAR(255) NOT NULL,
 			payload JSONB NOT NULL,
 		);`,
-		Down: "DROP TABLE {{ .Schema }}.webhook_events",
+		Down: "DROP TABLE {{ .Schema }}.webhook_event",
 	},
 }
