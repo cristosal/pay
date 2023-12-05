@@ -1,158 +1,53 @@
 package pay
 
 import (
+	"context"
 	"errors"
-	"fmt"
-	"strconv"
 	"time"
 
-	"github.com/cristosal/pgxx"
-	"github.com/jackc/pgx/v5"
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/checkout/session"
-	"github.com/stripe/stripe-go/v74/product"
 )
 
-const StripeProvider = "stripe"
+const ProviderStripe = "stripe"
 
 var ErrCheckoutFailed = errors.New("checkout failed")
 
 type (
 	// StripeConfig configures StripeService with necessary credentials and callbacks
 	StripeConfig struct {
-		CustomerRepo
-		PlanRepo
-		SubscriptionRepo
-		StripeEventRepo
+		Repo          *Repo
 		Key           string
 		WebhookSecret string
 	}
 
-	// StripeService interfaces with stripe for customer, plan and subscription data
-	StripeService struct {
-		cfg                *StripeConfig
-		subAddCallback     func(*Subscription)
-		subUpdatedCallback func(*Subscription)
+	// StripeProvider interfaces with stripe for customer, plan and subscription data
+	StripeProvider struct {
+		config *StripeConfig
 	}
 )
 
-// NewStripeProvider creates a service for interacting with stripe
-func NewStripeProvider(cfg *StripeConfig) *StripeService {
-	if cfg == nil {
-		cfg = new(StripeConfig)
+// NewStripeProvider creates a provider service for interacting with stripe
+func NewStripeProvider(config *StripeConfig) *StripeProvider {
+	if config == nil {
+		config = new(StripeConfig)
 	}
-
-	stripe.Key = cfg.Key
-
-	return &StripeService{
-		cfg:                cfg,
-		subAddCallback:     func(*Subscription) {},
-		subUpdatedCallback: func(*Subscription) {},
-	}
+	stripe.Key = config.Key
+	return &StripeProvider{config}
 }
 
-// Init creates tables and syncs data
-func (s *StripeService) Init() error {
-	if err := s.Customers().Init(); err != nil {
-		return fmt.Errorf("error initializing customers: %w", err)
-	}
-
-	if err := s.Plans().Init(); err != nil {
-		return fmt.Errorf("error initializing plans: %w", err)
-	}
-
-	if err := s.Subscriptions().Init(); err != nil {
-		return fmt.Errorf("error initializing subscriptions: %w", err)
-	}
-
-	if err := s.EventRepo().Init(); err != nil {
-		return fmt.Errorf("error initializing stripe event store: %w", err)
-	}
-
-	if err := s.Sync(); err != nil {
-		return fmt.Errorf("error syncing data: %w", err)
-	}
-
-	return nil
+// Init creates necessary tables by executing migrations
+func (s *StripeProvider) Init(ctx context.Context) error {
+	return s.Repo().Init(ctx)
 }
 
-// Sync data with stripe
-func (s *StripeService) Sync() error {
-	if err := s.syncCustomers(); err != nil {
-		return fmt.Errorf("error syncing customers: %w", err)
-	}
-
-	if err := s.syncPlans(); err != nil {
-		return fmt.Errorf("error syncing plans: %w", err)
-	}
-
-	if err := s.syncSubscriptions(); err != nil {
-		return fmt.Errorf("error syncing subscriptions: %w", err)
-	}
-
-	return nil
-}
-
-func (s *StripeService) EventRepo() StripeEventRepo {
-	return s.cfg.StripeEventRepo
-}
-
-// Customers returns the underlying customer repo
-func (s *StripeService) Customers() CustomerRepo {
-	return s.cfg.CustomerRepo
-}
-
-// Plans returns the underlying plan repo
-func (s *StripeService) Plans() PlanRepo {
-	return s.cfg.PlanRepo
-}
-
-// Plans returns the underlying plan repo
-func (s *StripeService) Subscriptions() SubscriptionRepo {
-	return s.cfg.SubscriptionRepo
-}
-
-func (s *StripeService) OnSubscriptionAdded(fn func(*Subscription)) {
-	s.subAddCallback = fn
-}
-
-func (s *StripeService) OnSubscriptionUpdated(fn func(*Subscription)) {
-	s.subUpdatedCallback = fn
-}
-
-func (s *StripeService) ListPlans() ([]Plan, error) {
-	return s.Plans().List()
-}
-
-// CurrentUserPlan returns the current active plan for a given user
-func (s *StripeService) PlanByUser(uid pgxx.ID) (*Plan, error) {
-	cust, err := s.Customers().ByUserID(uid)
-	if err != nil {
-		return nil, ErrNoPlan
-	}
-
-	subs, err := s.Subscriptions().ByCustomerID(cust.ID)
-	if err != nil {
-		return nil, ErrNoPlan
-	}
-
-	var sub *Subscription
-	for i := range subs {
-		if subs[i].Active {
-			sub = &subs[i]
-			break
-		}
-	}
-
-	if sub == nil || !sub.Active {
-		return nil, ErrNoPlan
-	}
-
-	return s.Plans().ByID(sub.PlanID)
+// Repo returns the entity repository
+func (s *StripeProvider) Repo() *Repo {
+	return s.config.Repo
 }
 
 // Verify that the checkout was completed
-func (s *StripeService) VerifyCheckout(sessionID string) error {
+func (s *StripeProvider) VerifyCheckout(sessionID string) error {
 	sess, err := session.Get(sessionID, nil)
 	if err != nil {
 		return err
@@ -165,56 +60,47 @@ func (s *StripeService) VerifyCheckout(sessionID string) error {
 	return nil
 }
 
-func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
-	cust, err := s.AddCustomer(req.UserID, req.Name, req.Email)
+// CheckoutRequest
+type CheckoutRequest struct {
+	CustomerID  int64
+	PriceID     int64
+	RedirectURL string
+}
 
-	if errors.Is(err, ErrNotFound) {
-		err = nil
-	}
-
+// Checkout returns the url that a user has to visit in order to complete payment
+// it registers the customer if it was unavailable
+func (s *StripeProvider) Checkout(request *CheckoutRequest) (url string, err error) {
+	customer, err := s.Repo().GetCustomerByID(request.CustomerID)
 	if err != nil {
 		return
 	}
 
-	pl, err := s.Plans().ByName(req.Plan)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return "", ErrNoPlan
-	}
-
+	price, err := s.Repo().GetPriceByID(request.PriceID)
 	if err != nil {
 		return
-	}
-
-	prod, err := product.Get(pl.ProviderID, nil)
-	if err != nil {
-		return "", ErrNoPlan
 	}
 
 	var trialEnd *int64 = nil
 
-	if pl.TrialDays > 0 {
+	if price.TrialDays > 0 {
 		// we add one day of grace so that stripe displays the correct amount.
 		// since trial end is calculated from current time, being one second off will result in days -1 being displayed in stripe checkout
-		trialEnd = stripe.Int64(pl.TrialEnd().Add(time.Hour * 24).Unix())
+		trialEnd = stripe.Int64(price.TrialEnd().Add(time.Hour * 24).Unix())
 	}
 
 	params := &stripe.CheckoutSessionParams{
-		Customer:                stripe.String(cust.ProviderID),
-		SuccessURL:              stripe.String(req.RedirectURL),
-		ClientReferenceID:       stripe.String(strconv.FormatInt(int64(req.UserID), 10)),
+		Customer:                stripe.String(customer.ProviderID),
+		SuccessURL:              stripe.String(request.RedirectURL),
 		Mode:                    stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		PaymentMethodCollection: stripe.String("if_required"),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				Price:    stripe.String(prod.DefaultPrice.ID),
+				Price:    stripe.String(price.ProviderID),
 				Quantity: stripe.Int64(1),
 			},
 		},
 		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
 			TrialEnd: trialEnd,
-			Metadata: map[string]string{
-				"user_id": req.UserID.String(),
-			},
 		},
 	}
 
@@ -225,4 +111,23 @@ func (s *StripeService) Checkout(req *CheckoutRequest) (url string, err error) {
 
 	url = sess.URL
 	return
+}
+
+// this should go here
+func (StripeProvider) convertPricingSchedule(p *stripe.Price) PricingSchedule {
+	switch p.Type {
+	case stripe.PriceTypeOneTime:
+		return PricingOnce
+	case stripe.PriceTypeRecurring:
+		switch p.Recurring.Interval {
+		case stripe.PriceRecurringIntervalMonth:
+			return PricingMonthly
+		case stripe.PriceRecurringIntervalYear:
+			return PricingAnnual
+		default:
+			return ""
+		}
+	default:
+		return ""
+	}
 }
