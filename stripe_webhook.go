@@ -13,7 +13,7 @@ import (
 )
 
 // Webhook returns the http handler that is responsible for handling any event received from stripe
-func (s *StripeService) Webhook() http.HandlerFunc {
+func (s *StripeProvider) Webhook() http.HandlerFunc {
 	const MaxBodyBytes = int64(65536)
 	whevents := make(chan stripe.Event)
 
@@ -93,7 +93,7 @@ func (s *StripeService) Webhook() http.HandlerFunc {
 	}
 }
 
-func (s *StripeService) handleSubscriptionCreated(data *stripe.EventData) error {
+func (s *StripeProvider) handleSubscriptionCreated(data *stripe.EventData) error {
 	var sub stripe.Subscription
 	if err := sub.UnmarshalJSON(data.Raw); err != nil {
 		return err
@@ -107,7 +107,7 @@ func (s *StripeService) handleSubscriptionCreated(data *stripe.EventData) error 
 	return s.Entities().AddSubscription(subscr)
 }
 
-func (s *StripeService) handleSubscriptionUpdated(data *stripe.EventData) error {
+func (s *StripeProvider) handleSubscriptionUpdated(data *stripe.EventData) error {
 	var sub stripe.Subscription
 	if err := sub.UnmarshalJSON(data.Raw); err != nil {
 		return err
@@ -121,7 +121,7 @@ func (s *StripeService) handleSubscriptionUpdated(data *stripe.EventData) error 
 	return s.Entities().UpdateSubscriptionByProvider(subscr)
 }
 
-func (s *StripeService) handleSubscriptionDeleted(data *stripe.EventData) error {
+func (s *StripeProvider) handleSubscriptionDeleted(data *stripe.EventData) error {
 	var sub stripe.Subscription
 	if err := sub.UnmarshalJSON(data.Raw); err != nil {
 		return err
@@ -135,7 +135,7 @@ func (s *StripeService) handleSubscriptionDeleted(data *stripe.EventData) error 
 	return s.Entities().RemoveSubscriptionByProvider(subscr)
 }
 
-func (s *StripeService) handleCustomerCreated(data *stripe.EventData) error {
+func (s *StripeProvider) handleCustomerCreated(data *stripe.EventData) error {
 	var c stripe.Customer
 	if err := json.Unmarshal(data.Raw, &c); err != nil {
 		return err
@@ -143,7 +143,7 @@ func (s *StripeService) handleCustomerCreated(data *stripe.EventData) error {
 	return s.Entities().AddCustomer(s.convertCustomer(&c))
 }
 
-func (s *StripeService) handleCustomerUpdated(data *stripe.EventData) error {
+func (s *StripeProvider) handleCustomerUpdated(data *stripe.EventData) error {
 	var c stripe.Customer
 	if err := json.Unmarshal(data.Raw, &c); err != nil {
 		return err
@@ -152,7 +152,7 @@ func (s *StripeService) handleCustomerUpdated(data *stripe.EventData) error {
 	return s.Entities().UpdateCustomerByProvider(s.convertCustomer(&c))
 }
 
-func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
+func (s *StripeProvider) handleCustomerDeleted(data *stripe.EventData) error {
 	var c stripe.Customer
 	if err := json.Unmarshal(data.Raw, &c); err != nil {
 		return err
@@ -160,7 +160,7 @@ func (s *StripeService) handleCustomerDeleted(data *stripe.EventData) error {
 	return s.Entities().RemoveCustomerByProvider(ProviderStripe, c.ID)
 }
 
-func (s *StripeService) handlePriceCreated(data *stripe.EventData) error {
+func (s *StripeProvider) handlePriceCreated(data *stripe.EventData) error {
 	var p stripe.Price
 	if err := json.Unmarshal(data.Raw, &p); err != nil {
 		return err
@@ -174,7 +174,7 @@ func (s *StripeService) handlePriceCreated(data *stripe.EventData) error {
 	return s.Entities().AddPrice(pr)
 }
 
-func (s *StripeService) handlePriceUpdated(data *stripe.EventData) error {
+func (s *StripeProvider) handlePriceUpdated(data *stripe.EventData) error {
 	var p stripe.Price
 	if err := json.Unmarshal(data.Raw, &p); err != nil {
 		return err
@@ -188,7 +188,7 @@ func (s *StripeService) handlePriceUpdated(data *stripe.EventData) error {
 	return s.Entities().UpdatePriceByProvider(pr)
 }
 
-func (s *StripeService) handlePriceDeleted(data *stripe.EventData) error {
+func (s *StripeProvider) handlePriceDeleted(data *stripe.EventData) error {
 	var p stripe.Price
 	if err := json.Unmarshal(data.Raw, &p); err != nil {
 		return err
@@ -200,7 +200,7 @@ func (s *StripeService) handlePriceDeleted(data *stripe.EventData) error {
 	})
 }
 
-func (s *StripeService) handleProductCreated(data *stripe.EventData) error {
+func (s *StripeProvider) handleProductCreated(data *stripe.EventData) error {
 	var p stripe.Product
 	if err := json.Unmarshal(data.Raw, &p); err != nil {
 		return err
@@ -209,7 +209,7 @@ func (s *StripeService) handleProductCreated(data *stripe.EventData) error {
 	return s.Entities().AddPlan(s.convertProduct(&p))
 }
 
-func (s *StripeService) handleProductUpdated(data *stripe.EventData) error {
+func (s *StripeProvider) handleProductUpdated(data *stripe.EventData) error {
 	var p stripe.Product
 	if err := json.Unmarshal(data.Raw, &p); err != nil {
 		return err
@@ -218,7 +218,7 @@ func (s *StripeService) handleProductUpdated(data *stripe.EventData) error {
 	return s.Entities().UpdatePlanByProvider(s.convertProduct(&p))
 }
 
-func (s *StripeService) handleProductDeleted(data *stripe.EventData) error {
+func (s *StripeProvider) handleProductDeleted(data *stripe.EventData) error {
 	var p stripe.Product
 	if err := json.Unmarshal(data.Raw, &p); err != nil {
 		return err
@@ -226,7 +226,7 @@ func (s *StripeService) handleProductDeleted(data *stripe.EventData) error {
 	return s.Entities().RemovePlanByProvider(ProviderStripe, p.ID)
 }
 
-func (StripeService) convertCustomer(c *stripe.Customer) *Customer {
+func (StripeProvider) convertCustomer(c *stripe.Customer) *Customer {
 	return &Customer{
 		ProviderID: c.ID,
 		Provider:   ProviderStripe,
@@ -235,7 +235,7 @@ func (StripeService) convertCustomer(c *stripe.Customer) *Customer {
 	}
 }
 
-func (StripeService) convertProduct(p *stripe.Product) *Plan {
+func (StripeProvider) convertProduct(p *stripe.Product) *Plan {
 	return &Plan{
 		Name:        p.Name,
 		Description: p.Description,
@@ -246,7 +246,7 @@ func (StripeService) convertProduct(p *stripe.Product) *Plan {
 	}
 }
 
-func (s *StripeService) convertPrice(p *stripe.Price) (*Price, error) {
+func (s *StripeProvider) convertPrice(p *stripe.Price) (*Price, error) {
 	pl, err := s.Entities().GetPlanByProvider(ProviderStripe, p.Product.ID)
 	if err != nil {
 		return nil, err
@@ -265,7 +265,7 @@ func (s *StripeService) convertPrice(p *stripe.Price) (*Price, error) {
 	return pr, nil
 }
 
-func (s *StripeService) convertSubscription(sub *stripe.Subscription) (*Subscription, error) {
+func (s *StripeProvider) convertSubscription(sub *stripe.Subscription) (*Subscription, error) {
 	// ensure that the first item is a subscription
 	if sub.Items == nil ||
 		len(sub.Items.Data) == 0 ||

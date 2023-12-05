@@ -14,7 +14,7 @@ import (
 )
 
 // Sync repository data with stripe
-func (s *StripeService) Sync() error {
+func (s *StripeProvider) Sync() error {
 	if err := s.syncCustomers(); err != nil {
 		return fmt.Errorf("error syncing customers: %w", err)
 	}
@@ -34,7 +34,7 @@ func (s *StripeService) Sync() error {
 	return nil
 }
 
-func (s *StripeService) syncPrices(ctx context.Context) error {
+func (s *StripeProvider) syncPrices(ctx context.Context) error {
 	it := price.List(nil)
 
 	for it.Next() {
@@ -69,7 +69,7 @@ func (s *StripeService) syncPrices(ctx context.Context) error {
 	return nil
 }
 
-func (s *StripeService) syncCustomers() error {
+func (s *StripeProvider) syncCustomers() error {
 	it := customer.List(nil)
 	for it.Next() {
 		cust := it.Customer()
@@ -96,7 +96,7 @@ func (s *StripeService) syncCustomers() error {
 	return nil
 }
 
-func (s *StripeService) syncPlans() error {
+func (s *StripeProvider) syncPlans() error {
 	it := product.List(nil)
 
 	for it.Next() {
@@ -127,7 +127,7 @@ func (s *StripeService) syncPlans() error {
 }
 
 // syncSubscriptions pulls in all subscriptions from stripe
-func (s *StripeService) syncSubscriptions() error {
+func (s *StripeProvider) syncSubscriptions() error {
 	it := subscription.List(nil)
 	for it.Next() {
 		sub := it.Subscription()

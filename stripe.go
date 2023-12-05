@@ -23,31 +23,23 @@ type (
 		WebhookSecret          string
 	}
 
-	// StripeService interfaces with stripe for customer, plan and subscription data
-	StripeService struct {
-		config             *StripeConfig
-		subAddCallback     func(*Subscription)
-		subUpdatedCallback func(*Subscription)
+	// StripeProvider interfaces with stripe for customer, plan and subscription data
+	StripeProvider struct {
+		config *StripeConfig
 	}
 )
 
 // NewStripeProvider creates a provider service for interacting with stripe
-func NewStripeProvider(config *StripeConfig) *StripeService {
+func NewStripeProvider(config *StripeConfig) *StripeProvider {
 	if config == nil {
 		config = new(StripeConfig)
 	}
-
 	stripe.Key = config.Key
-
-	return &StripeService{
-		config:             config,
-		subAddCallback:     func(*Subscription) {},
-		subUpdatedCallback: func(*Subscription) {},
-	}
+	return &StripeProvider{config}
 }
 
 // Init creates necessary tables by executing migrations
-func (s *StripeService) Init(ctx context.Context) error {
+func (s *StripeProvider) Init(ctx context.Context) error {
 	if err := s.Entities().Init(ctx); err != nil {
 		return fmt.Errorf("error initializing customers: %w", err)
 	}
@@ -60,27 +52,17 @@ func (s *StripeService) Init(ctx context.Context) error {
 }
 
 // WebhookEvents returns the stripe event repository
-func (s *StripeService) WebhookEvents() *StripeEventRepo {
+func (s *StripeProvider) WebhookEvents() *StripeEventRepo {
 	return s.config.StripeWebhookEventRepo
 }
 
 // Entities returns the entity repository
-func (s *StripeService) Entities() *EntityRepo {
+func (s *StripeProvider) Entities() *EntityRepo {
 	return s.config.EntityRepo
 }
 
-// OnSubscriptionAdded registers a callback that is invoked whenever a subscription is added to the repository
-func (s *StripeService) OnSubscriptionAdded(fn func(*Subscription)) {
-	s.subAddCallback = fn
-}
-
-// OnSubscriptionUpdated registers a callback that is invoked whenever a subscription is updated in the repository
-func (s *StripeService) OnSubscriptionUpdated(fn func(*Subscription)) {
-	s.subUpdatedCallback = fn
-}
-
 // Verify that the checkout was completed
-func (s *StripeService) VerifyCheckout(sessionID string) error {
+func (s *StripeProvider) VerifyCheckout(sessionID string) error {
 	sess, err := session.Get(sessionID, nil)
 	if err != nil {
 		return err
@@ -102,7 +84,7 @@ type CheckoutRequest struct {
 
 // Checkout returns the url that a user has to visit in order to complete payment
 // it registers the customer if it was unavailable
-func (s *StripeService) Checkout(request *CheckoutRequest) (url string, err error) {
+func (s *StripeProvider) Checkout(request *CheckoutRequest) (url string, err error) {
 	customer, err := s.Entities().GetCustomerByID(request.CustomerID)
 	if err != nil {
 		return
@@ -147,7 +129,7 @@ func (s *StripeService) Checkout(request *CheckoutRequest) (url string, err erro
 }
 
 // this should go here
-func (StripeService) convertPricingSchedule(p *stripe.Price) PricingSchedule {
+func (StripeProvider) convertPricingSchedule(p *stripe.Price) PricingSchedule {
 	switch p.Type {
 	case stripe.PriceTypeOneTime:
 		return PricingOnce
