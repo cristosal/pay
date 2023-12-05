@@ -65,7 +65,8 @@ var migrations = []orm.Migration{
 			UNIQUE (provider, provider_id)
 		);`,
 		Down: "DROP TABLE {{ .Schema }}.price",
-	}, {
+	},
+	{
 		Name:        "webhook event table",
 		Description: "create webhook events table",
 		Up: `CREATE TABLE {{ .Schema }}.webhook_event (
