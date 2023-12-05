@@ -92,8 +92,8 @@ func (r *Repo) Destroy(ctx context.Context) error {
 	return err
 }
 
-// AddPrice to plan
-func (r *Repo) AddPrice(p *Price) error {
+// addPrice to plan
+func (r *Repo) addPrice(p *Price) error {
 	if err := orm.Add(r.db, p); err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func (r *Repo) AddPrice(p *Price) error {
 }
 
 // UpdatePriceByProvider
-func (r *Repo) UpdatePriceByProvider(p *Price) error {
+func (r *Repo) updatePriceByProvider(p *Price) error {
 	var prev *Price
 	_ = orm.Get(r.db, prev, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
 
@@ -117,19 +117,8 @@ func (r *Repo) UpdatePriceByProvider(p *Price) error {
 	return nil
 }
 
-// RemovePriceByID deletes price from repository
-func (r *Repo) RemovePriceByID(p *Price) error {
-	err := orm.RemoveByID(r.db, p)
-	if err != nil {
-		return err
-	}
-
-	r.priceRemoved(p)
-	return nil
-}
-
 // RemovePrice deletes price from repository
-func (r *Repo) RemovePriceByProvider(p *Price) error {
+func (r *Repo) removePriceByProvider(p *Price) error {
 	err := orm.Remove(r.db, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
 	if err != nil {
 		return err
@@ -168,24 +157,8 @@ func (r *Repo) GetCustomerByProvider(provider, providerID string) (*Customer, er
 	return &c, nil
 }
 
-// UpdateCustomerByID updates a given customer by id field
-func (r *Repo) UpdateCustomerByID(c *Customer) error {
-	var prev Customer
-	prev.ID = c.ID
-	if err := orm.GetByID(r.db, &prev); err != nil {
-		return err
-	}
-
-	if err := orm.UpdateByID(r.db, c); err != nil {
-		return err
-	}
-
-	r.customerUpdated(&prev, c)
-	return nil
-}
-
 // UpdateCustomerByProvider updates a given customer by id field
-func (r *Repo) UpdateCustomerByProvider(c *Customer) error {
+func (r *Repo) updateCustomerByProvider(c *Customer) error {
 	var prev Customer
 	if err := orm.Get(r.db, &prev, "WHERE provider = $1 AND provider_id = $2", c.Provider, c.ProviderID); err != nil {
 		return err
@@ -200,7 +173,7 @@ func (r *Repo) UpdateCustomerByProvider(c *Customer) error {
 }
 
 // AddCustomer inserts a customer into the repository
-func (r *Repo) AddCustomer(c *Customer) error {
+func (r *Repo) addCustomer(c *Customer) error {
 	if err := orm.Add(r.db, c); err != nil {
 		return err
 	}
@@ -209,7 +182,7 @@ func (r *Repo) AddCustomer(c *Customer) error {
 }
 
 // RemoveCustomerByProviderID removes customer by given provider
-func (r *Repo) RemoveCustomerByProvider(provider, providerID string) error {
+func (r *Repo) removeCustomerByProvider(provider, providerID string) error {
 	var c Customer
 	if err := orm.Get(r.db, &c, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
 		return err
@@ -234,7 +207,7 @@ func (r *Repo) ListPlans() ([]Plan, error) {
 }
 
 // AddPlan adds a plan to the repository
-func (r *Repo) AddPlan(p *Plan) error {
+func (r *Repo) addPlan(p *Plan) error {
 	if err := orm.Add(r.db, p); err != nil {
 		return err
 	}
@@ -244,7 +217,7 @@ func (r *Repo) AddPlan(p *Plan) error {
 }
 
 // RemovePlanByProviderID deletes a plan by provider id from the repository
-func (r *Repo) RemovePlanByProvider(provider, providerID string) error {
+func (r *Repo) removePlanByProvider(provider, providerID string) error {
 	var p Plan
 	if err := orm.Get(r.db, &p, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
 		return err
@@ -256,23 +229,8 @@ func (r *Repo) RemovePlanByProvider(provider, providerID string) error {
 	return nil
 }
 
-// UpdatePlanByID updates the plan matching the id field
-func (r *Repo) UpdatePlanByID(p *Plan) error {
-	var prev Plan
-	prev.ID = p.ID
-	if err := orm.GetByID(r.db, &prev); err != nil {
-		return err
-	}
-
-	if err := orm.UpdateByID(r.db, p); err != nil {
-		return err
-	}
-	r.planUpdated(&prev, p)
-	return nil
-}
-
 // UpdatePlanByProvider updates the plan matching the provider and provider id
-func (r *Repo) UpdatePlanByProvider(p *Plan) error {
+func (r *Repo) updatePlanByProvider(p *Plan) error {
 	var prev Plan
 	if err := orm.Get(r.db, &prev, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID); err != nil {
 		return err
@@ -337,7 +295,7 @@ func (r *Repo) GetPlanByCustomerEmail(email string) (*Plan, error) {
 	return &p, nil
 }
 
-func (r *Repo) AddSubscription(s *Subscription) error {
+func (r *Repo) addSubscription(s *Subscription) error {
 	if err := orm.Add(r.db, s); err != nil {
 		return err
 	}
@@ -345,22 +303,7 @@ func (r *Repo) AddSubscription(s *Subscription) error {
 	return nil
 }
 
-func (r *Repo) UpdateSubscriptionByID(s *Subscription) error {
-	var prev Subscription
-	prev.ID = s.ID
-	if err := orm.GetByID(r.db, &prev); err != nil {
-		return err
-	}
-
-	if err := orm.UpdateByID(r.db, s); err != nil {
-		return err
-	}
-
-	r.subUpdated(&prev, s)
-	return nil
-}
-
-func (r *Repo) UpdateSubscriptionByProvider(s *Subscription) error {
+func (r *Repo) updateSubscriptionByProvider(s *Subscription) error {
 	var prev Subscription
 	if err := orm.Get(r.db, &prev, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID); err != nil {
 		return err
@@ -374,7 +317,7 @@ func (r *Repo) UpdateSubscriptionByProvider(s *Subscription) error {
 	return nil
 }
 
-func (r *Repo) RemoveSubscriptionByProvider(s *Subscription) error {
+func (r *Repo) removeSubscriptionByProvider(s *Subscription) error {
 	if err := orm.Remove(r.db, s, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID); err != nil {
 		return err
 	}
@@ -409,13 +352,13 @@ func (r *Repo) GetSubscriptionByProvider(provider, providerID string) (*Subscrip
 	return &s, nil
 }
 
-func (r *Repo) HasWebhookEvent(eventID string) bool {
+func (r *Repo) hasWebhookEvent(eventID string) bool {
 	var id string
 	row := r.db.QueryRow("SELECT event_id FROM webhook_events WHERE event_id = $1", eventID)
 	_ = row.Scan(&id)
 	return id != ""
 }
 
-func (r *Repo) AddWebhookEvent(eventID, eventType string, payload []byte) error {
+func (r *Repo) addWebhookEvent(eventID, eventType string, payload []byte) error {
 	return orm.Exec(r.db, "INSERT INTO webhook_events (event_id, event_type, payload) VALUES ($1, $2, $3)", eventID, eventType, payload)
 }

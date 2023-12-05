@@ -76,13 +76,13 @@ func (s *StripeProvider) Webhook() http.HandlerFunc {
 			return
 		}
 
-		if s.Repo().HasWebhookEvent(event.ID) {
+		if s.Repo().hasWebhookEvent(event.ID) {
 			log.Printf("Already processed event with id %s", event.ID)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		if err := s.Repo().AddWebhookEvent(event.ID, event.Type, event.Data.Raw); err != nil {
+		if err := s.Repo().addWebhookEvent(event.ID, event.Type, event.Data.Raw); err != nil {
 			log.Printf("error while saving stripe event: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -104,7 +104,7 @@ func (s *StripeProvider) handleSubscriptionCreated(data *stripe.EventData) error
 		return err
 	}
 
-	return s.Repo().AddSubscription(subscr)
+	return s.Repo().addSubscription(subscr)
 }
 
 func (s *StripeProvider) handleSubscriptionUpdated(data *stripe.EventData) error {
@@ -118,7 +118,7 @@ func (s *StripeProvider) handleSubscriptionUpdated(data *stripe.EventData) error
 		return err
 	}
 
-	return s.Repo().UpdateSubscriptionByProvider(subscr)
+	return s.Repo().updateSubscriptionByProvider(subscr)
 }
 
 func (s *StripeProvider) handleSubscriptionDeleted(data *stripe.EventData) error {
@@ -132,7 +132,7 @@ func (s *StripeProvider) handleSubscriptionDeleted(data *stripe.EventData) error
 		return err
 	}
 
-	return s.Repo().RemoveSubscriptionByProvider(subscr)
+	return s.Repo().removeSubscriptionByProvider(subscr)
 }
 
 func (s *StripeProvider) handleCustomerCreated(data *stripe.EventData) error {
@@ -140,7 +140,7 @@ func (s *StripeProvider) handleCustomerCreated(data *stripe.EventData) error {
 	if err := json.Unmarshal(data.Raw, &c); err != nil {
 		return err
 	}
-	return s.Repo().AddCustomer(s.convertCustomer(&c))
+	return s.Repo().addCustomer(s.convertCustomer(&c))
 }
 
 func (s *StripeProvider) handleCustomerUpdated(data *stripe.EventData) error {
@@ -149,7 +149,7 @@ func (s *StripeProvider) handleCustomerUpdated(data *stripe.EventData) error {
 		return err
 	}
 
-	return s.Repo().UpdateCustomerByProvider(s.convertCustomer(&c))
+	return s.Repo().updateCustomerByProvider(s.convertCustomer(&c))
 }
 
 func (s *StripeProvider) handleCustomerDeleted(data *stripe.EventData) error {
@@ -157,7 +157,7 @@ func (s *StripeProvider) handleCustomerDeleted(data *stripe.EventData) error {
 	if err := json.Unmarshal(data.Raw, &c); err != nil {
 		return err
 	}
-	return s.Repo().RemoveCustomerByProvider(ProviderStripe, c.ID)
+	return s.Repo().removeCustomerByProvider(ProviderStripe, c.ID)
 }
 
 func (s *StripeProvider) handlePriceCreated(data *stripe.EventData) error {
@@ -171,7 +171,7 @@ func (s *StripeProvider) handlePriceCreated(data *stripe.EventData) error {
 		return err
 	}
 
-	return s.Repo().AddPrice(pr)
+	return s.Repo().addPrice(pr)
 }
 
 func (s *StripeProvider) handlePriceUpdated(data *stripe.EventData) error {
@@ -185,7 +185,7 @@ func (s *StripeProvider) handlePriceUpdated(data *stripe.EventData) error {
 		return err
 	}
 
-	return s.Repo().UpdatePriceByProvider(pr)
+	return s.Repo().updatePriceByProvider(pr)
 }
 
 func (s *StripeProvider) handlePriceDeleted(data *stripe.EventData) error {
@@ -194,7 +194,7 @@ func (s *StripeProvider) handlePriceDeleted(data *stripe.EventData) error {
 		return err
 	}
 
-	return s.Repo().RemovePriceByProvider(&Price{
+	return s.Repo().removePriceByProvider(&Price{
 		Provider:   ProviderStripe,
 		ProviderID: p.ID,
 	})
@@ -206,7 +206,7 @@ func (s *StripeProvider) handleProductCreated(data *stripe.EventData) error {
 		return err
 	}
 
-	return s.Repo().AddPlan(s.convertProduct(&p))
+	return s.Repo().addPlan(s.convertProduct(&p))
 }
 
 func (s *StripeProvider) handleProductUpdated(data *stripe.EventData) error {
@@ -215,7 +215,7 @@ func (s *StripeProvider) handleProductUpdated(data *stripe.EventData) error {
 		return err
 	}
 
-	return s.Repo().UpdatePlanByProvider(s.convertProduct(&p))
+	return s.Repo().updatePlanByProvider(s.convertProduct(&p))
 }
 
 func (s *StripeProvider) handleProductDeleted(data *stripe.EventData) error {
@@ -223,7 +223,7 @@ func (s *StripeProvider) handleProductDeleted(data *stripe.EventData) error {
 	if err := json.Unmarshal(data.Raw, &p); err != nil {
 		return err
 	}
-	return s.Repo().RemovePlanByProvider(ProviderStripe, p.ID)
+	return s.Repo().removePlanByProvider(ProviderStripe, p.ID)
 }
 
 func (StripeProvider) convertCustomer(c *stripe.Customer) *Customer {

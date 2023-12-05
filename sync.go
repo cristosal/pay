@@ -49,7 +49,7 @@ func (s *StripeProvider) syncPrices(ctx context.Context) error {
 		_, err = s.Repo().GetPriceByProvider(ProviderStripe, p.ID)
 
 		if errors.Is(err, orm.ErrNotFound) {
-			if err := s.Repo().UpdatePriceByProvider(pr); err != nil {
+			if err := s.Repo().updatePriceByProvider(pr); err != nil {
 				log.Printf("error updating price %s: %v", pr.ProviderID, err)
 			}
 			continue
@@ -60,7 +60,7 @@ func (s *StripeProvider) syncPrices(ctx context.Context) error {
 			continue
 		}
 
-		if err := s.Repo().AddPrice(pr); err != nil {
+		if err := s.Repo().addPrice(pr); err != nil {
 			log.Printf("error adding price %s: %v", pr.ProviderID, err)
 			continue
 		}
@@ -77,14 +77,14 @@ func (s *StripeProvider) syncCustomers() error {
 
 		found, _ := s.Repo().GetCustomerByProvider(ProviderStripe, cust.ID)
 		if found == nil {
-			if err := s.Repo().AddCustomer(c); err != nil {
+			if err := s.Repo().addCustomer(c); err != nil {
 				log.Printf("error while adding stripe customer with id %s: %v", c.ProviderID, err)
 			}
 			continue
 		}
 
 		c.ID = found.ID
-		if err := s.Repo().UpdateCustomerByProvider(c); err != nil {
+		if err := s.Repo().updateCustomerByProvider(c); err != nil {
 			log.Printf("error while updating stripe customer with id %s: %v", c.ProviderID, err)
 		}
 	}
@@ -107,7 +107,7 @@ func (s *StripeProvider) syncPlans() error {
 		_, err := s.Repo().GetPlanByProvider(ProviderStripe, p.ID)
 
 		if errors.Is(err, orm.ErrNotFound) {
-			if err := s.Repo().AddPlan(pl); err != nil {
+			if err := s.Repo().addPlan(pl); err != nil {
 				log.Printf("error while adding plan %s: %v", p.ID, err)
 			}
 			continue
@@ -118,7 +118,7 @@ func (s *StripeProvider) syncPlans() error {
 			continue
 		}
 
-		if err := s.Repo().UpdatePlanByProvider(pl); err != nil {
+		if err := s.Repo().updatePlanByProvider(pl); err != nil {
 			log.Printf("error updating plan %s: %v", pl.ProviderID, err)
 		}
 	}
@@ -139,7 +139,7 @@ func (s *StripeProvider) syncSubscriptions() error {
 		_, err = s.Repo().GetSubscriptionByProvider(ProviderStripe, sub.ID)
 		if errors.Is(err, orm.ErrNotFound) {
 			// we add it
-			if err := s.Repo().AddSubscription(subscr); err != nil {
+			if err := s.Repo().addSubscription(subscr); err != nil {
 				log.Printf("error adding subscription %s: %v", subscr.ProviderID, err)
 			}
 			continue
@@ -150,7 +150,7 @@ func (s *StripeProvider) syncSubscriptions() error {
 			continue
 		}
 
-		if err := s.Repo().UpdateSubscriptionByProvider(subscr); err != nil {
+		if err := s.Repo().updateSubscriptionByProvider(subscr); err != nil {
 			log.Printf("error updating subscription %s: %v", subscr.ProviderID, err)
 			continue
 		}

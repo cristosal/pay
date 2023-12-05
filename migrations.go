@@ -68,12 +68,12 @@ var migrations = []orm.Migration{
 	}, {
 		Name:        "webhook events",
 		Description: "create webhook events table",
-		Up: `CREATE TABLE IF NOT EXISTS webhook_events (
+		Up: `CREATE TABLE IF NOT EXISTS {{ .Schema }}.webhook_events (
 				event_id VARCHAR(255) NOT NULL PRIMARY KEY,
 				event_type VARCHAR(255) NOT NULL,
 				payload JSONB NOT NULL,
 				processed BOOL NOT NULL DEFAULT FALSE
 			)`,
-		Down: "DROP TABLE webhook_events",
+		Down: "DROP TABLE {{ .Schema }}.webhook_events",
 	},
 }
