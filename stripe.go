@@ -3,7 +3,6 @@ package pay
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/stripe/stripe-go/v74"
@@ -17,10 +16,9 @@ var ErrCheckoutFailed = errors.New("checkout failed")
 type (
 	// StripeConfig configures StripeService with necessary credentials and callbacks
 	StripeConfig struct {
-		EntityRepo             *EntityRepo
-		StripeWebhookEventRepo *StripeEventRepo
-		Key                    string
-		WebhookSecret          string
+		EntityRepo    *Repo
+		Key           string
+		WebhookSecret string
 	}
 
 	// StripeProvider interfaces with stripe for customer, plan and subscription data
@@ -40,24 +38,11 @@ func NewStripeProvider(config *StripeConfig) *StripeProvider {
 
 // Init creates necessary tables by executing migrations
 func (s *StripeProvider) Init(ctx context.Context) error {
-	if err := s.Entities().Init(ctx); err != nil {
-		return fmt.Errorf("error initializing customers: %w", err)
-	}
-
-	if err := s.WebhookEvents().Init(ctx); err != nil {
-		return fmt.Errorf("error initializing stripe event store: %w", err)
-	}
-
-	return nil
+	return s.Repo().Init(ctx)
 }
 
-// WebhookEvents returns the stripe event repository
-func (s *StripeProvider) WebhookEvents() *StripeEventRepo {
-	return s.config.StripeWebhookEventRepo
-}
-
-// Entities returns the entity repository
-func (s *StripeProvider) Entities() *EntityRepo {
+// Repo returns the entity repository
+func (s *StripeProvider) Repo() *Repo {
 	return s.config.EntityRepo
 }
 
@@ -85,12 +70,12 @@ type CheckoutRequest struct {
 // Checkout returns the url that a user has to visit in order to complete payment
 // it registers the customer if it was unavailable
 func (s *StripeProvider) Checkout(request *CheckoutRequest) (url string, err error) {
-	customer, err := s.Entities().GetCustomerByID(request.CustomerID)
+	customer, err := s.Repo().GetCustomerByID(request.CustomerID)
 	if err != nil {
 		return
 	}
 
-	price, err := s.Entities().GetPriceByID(request.PriceID)
+	price, err := s.Repo().GetPriceByID(request.PriceID)
 	if err != nil {
 		return
 	}

@@ -87,7 +87,7 @@ func TestCustomerRepo(t *testing.T) {
 	}
 }
 
-func getPgxEntityRepo(t *testing.T) *pay.EntityRepo {
+func getPgxEntityRepo(t *testing.T) *pay.Repo {
 	db, err := sql.Open("pgx", os.Getenv("TEST_CONNECTION_STRING"))
 	if err != nil {
 		t.Fatal(err)

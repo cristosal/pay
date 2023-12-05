@@ -65,5 +65,15 @@ var migrations = []orm.Migration{
 			UNIQUE (provider, provider_id)
 		);`,
 		Down: "DROP TABLE {{ .Schema }}.subscription",
+	}, {
+		Name:        "webhook events",
+		Description: "create webhook events table",
+		Up: `CREATE TABLE IF NOT EXISTS webhook_events (
+				event_id VARCHAR(255) NOT NULL PRIMARY KEY,
+				event_type VARCHAR(255) NOT NULL,
+				payload JSONB NOT NULL,
+				processed BOOL NOT NULL DEFAULT FALSE
+			)`,
+		Down: "DROP TABLE webhook_events",
 	},
 }
