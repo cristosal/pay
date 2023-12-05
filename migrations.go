@@ -33,23 +33,6 @@ var migrations = []orm.Migration{
 		Down: "DROP TABLE {{ .Schema }}.plan",
 	},
 	{
-		Name:        "subscription table",
-		Description: "create subscription table",
-		Up: `
-		CREATE TABLE {{ .Schema }}.subscription (
-			id SERIAL PRIMARY KEY,
-			customer_id INT NOT NULL,
-			price_id INT NOT NULL,
-			provider VARCHAR(255) NOT NULL,
-			provider_id VARCHAR(255) NOT NULL,
-			active BOOL NOT NULL DEFAULT FALSE,
-			FOREIGN KEY (customer_id) REFERENCES {{ .Schema }}.customer(id),
-			FOREIGN KEY (price_id) REFERENCES {{ .Schema }}.price(id),
-			UNIQUE (provider, provider_id)
-		);`,
-		Down: "DROP TABLE {{ .Schema }}.subscription",
-	},
-	{
 		Name:        "price table",
 		Description: "create price table",
 		Up: `
@@ -65,6 +48,23 @@ var migrations = []orm.Migration{
 			UNIQUE (provider, provider_id)
 		);`,
 		Down: "DROP TABLE {{ .Schema }}.price",
+	},
+	{
+		Name:        "subscription table",
+		Description: "create subscription table",
+		Up: `
+		CREATE TABLE {{ .Schema }}.subscription (
+			id SERIAL PRIMARY KEY,
+			customer_id INT NOT NULL,
+			price_id INT NOT NULL,
+			provider VARCHAR(255) NOT NULL,
+			provider_id VARCHAR(255) NOT NULL,
+			active BOOL NOT NULL DEFAULT FALSE,
+			FOREIGN KEY (customer_id) REFERENCES {{ .Schema }}.customer(id),
+			FOREIGN KEY (price_id) REFERENCES {{ .Schema }}.price(id),
+			UNIQUE (provider, provider_id)
+		);`,
+		Down: "DROP TABLE {{ .Schema }}.subscription",
 	},
 	{
 		Name:        "webhook event table",
