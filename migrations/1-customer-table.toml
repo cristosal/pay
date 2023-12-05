@@ -1,7 +1,8 @@
-name = "customer table"
 description = "create customers table"
+down = "DROP TABLE {{ .Schema }}.customer"
+name = "customer table"
 up = """ 
-CREATE TABLE pay.customer (
+CREATE TABLE {{ .Schema }}.customer (
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT Null,
 	email VARCHAR(255) NOT Null,
@@ -10,4 +11,3 @@ CREATE TABLE pay.customer (
 	UNIQUE (provider, provider_id)
 );
 """
-down = "DROP TABLE pay.customer"

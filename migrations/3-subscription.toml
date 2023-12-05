@@ -1,7 +1,8 @@
-name = "subscription_table"
 description = "Creates a subscription table"
+down = "DROP TABLE {{ .Schema }}.subscription"
+name = "subscription_table"
 up = """
-  CREATE TABLE IF NOT EXISTS pay.subscription (
+  CREATE TABLE IF NOT EXISTS {{ .Schema }}.subscription (
     id SERIAL PRIMARY KEY,
     customer_id INT NOT NULL,
     plan_id INT NOT NULL,
@@ -12,4 +13,3 @@ up = """
     FOREIGN KEY (plan_id) REFERENCES pay.plan(id)
   );
 """
-down = "DROP TABLE pay.subscription"

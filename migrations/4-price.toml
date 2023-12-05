@@ -1,7 +1,8 @@
-name= "price_table"
-description= "Creates a price table with a one to many relationship with plan"
+description = "Creates a price table with a one to many relationship with plan"
+down = "DROP TABLE {{ .Schema }}.price"
+name = "price_table"
 up = """
-CREATE TABLE pay.price(
+CREATE TABLE {{ .Schema }}.price (
 	id SERIAL PRIMARY KEY,
 	plan_id INT NOT NULL,
 	provider VARCHAR(255) NOT NULL,
@@ -13,4 +14,3 @@ CREATE TABLE pay.price(
 	UNIQUE (provider, provider_id)
 );
 """
-down = "DROP TABLE pay.price"

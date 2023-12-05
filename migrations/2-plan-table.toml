@@ -1,7 +1,8 @@
-name = "plan_table"
 description = "Creates a plan table"
+down = "DROP TABLE pay.plan"
+name = "plan_table"
 up = """
-CREATE TABLE pay.plan(
+CREATE TABLE {{ .Schema }}.plan(
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -10,4 +11,3 @@ CREATE TABLE pay.plan(
 	active BOOL NOT NULL
 );
 """
-down = "DROP TABLE pay.plan"
