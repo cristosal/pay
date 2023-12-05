@@ -16,7 +16,7 @@ var ErrCheckoutFailed = errors.New("checkout failed")
 type (
 	// StripeConfig configures StripeService with necessary credentials and callbacks
 	StripeConfig struct {
-		EntityRepo    *Repo
+		Repo          *Repo
 		Key           string
 		WebhookSecret string
 	}
@@ -43,7 +43,7 @@ func (s *StripeProvider) Init(ctx context.Context) error {
 
 // Repo returns the entity repository
 func (s *StripeProvider) Repo() *Repo {
-	return s.config.EntityRepo
+	return s.config.Repo
 }
 
 // Verify that the checkout was completed
@@ -64,7 +64,7 @@ func (s *StripeProvider) VerifyCheckout(sessionID string) error {
 type CheckoutRequest struct {
 	CustomerID  int64
 	PriceID     int64
-	RedirectURL string `json:"redirect_url"`
+	RedirectURL string
 }
 
 // Checkout returns the url that a user has to visit in order to complete payment

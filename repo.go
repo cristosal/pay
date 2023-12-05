@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/cristosal/migra"
 	"github.com/cristosal/orm"
 )
 
@@ -84,11 +83,9 @@ func (r *Repo) GetPricesByPlanID(planID int64) ([]Price, error) {
 
 // Destroy removes all tables and relationships
 func (r *Repo) Destroy(ctx context.Context) error {
-	m := migra.New(r.db).
-		SetSchema("pay").
-		SetMigrationTable(r.migrationTable)
-
-	_, err := m.PopAll(ctx)
+	orm.SetSchema(r.schema)
+	orm.SetMigrationTable(r.migrationTable)
+	_, err := orm.RemoveAllMigrations(r.db)
 	return err
 }
 
