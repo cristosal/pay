@@ -23,14 +23,8 @@ type EntityRepo struct {
 // NewEntityRepo is a constructor for *Repo
 func NewEntityRepo(db *sql.DB) *EntityRepo {
 	return &EntityRepo{
-		db:                       db,
-		schema:                   DefaultSchema,
-		subAddedCallbacks:        []func(*Subscription){},
-		subUpdatedCallbacks:      []func(*Subscription, *Subscription){},
-		subRemovedCallbacks:      []func(*Subscription){},
-		customerAddedCallbacks:   []func(*Customer){},
-		customerUpdatedCallbacks: []func(*Customer, *Customer){},
-		customerRemovedCallbacks: []func(*Customer){},
+		db:     db,
+		schema: DefaultSchema,
 	}
 }
 
@@ -123,9 +117,9 @@ func (r *EntityRepo) UpdatePriceByProvider(p *Price) error {
 	return nil
 }
 
-// RemovePrice deletes price from repository
-func (r *EntityRepo) RemovePrice(p *Price) error {
-	err := orm.Exec(r.db, "DELETE FROM pay.price WHERE id = $1", p.ID)
+// RemovePriceByID deletes price from repository
+func (r *EntityRepo) RemovePriceByID(p *Price) error {
+	err := orm.RemoveByID(r.db, p)
 	if err != nil {
 		return err
 	}
@@ -136,12 +130,13 @@ func (r *EntityRepo) RemovePrice(p *Price) error {
 
 // RemovePrice deletes price from repository
 func (r *EntityRepo) RemovePriceByProvider(p *Price) error {
-	return orm.Exec(r.db, "DELETE FROM pay.price WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
-}
+	err := orm.Remove(r.db, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
+	if err != nil {
+		return err
+	}
 
-// RemoveCustomers removes all customers from the database
-func (r *EntityRepo) RemoveCustomers() error {
-	return orm.Exec(r.db, "DELETE FROM pay.customer")
+	r.priceRemoved(p)
+	return nil
 }
 
 // GetCustomerByID returns the customer by its id field
@@ -175,28 +170,63 @@ func (r *EntityRepo) GetCustomerByProvider(provider, providerID string) (*Custom
 
 // UpdateCustomerByID updates a given customer by id field
 func (r *EntityRepo) UpdateCustomerByID(c *Customer) error {
-	return orm.UpdateByID(r.db, c)
+	var prev Customer
+	prev.ID = c.ID
+	if err := orm.GetByID(r.db, &prev); err != nil {
+		return err
+	}
+
+	if err := orm.UpdateByID(r.db, c); err != nil {
+		return err
+	}
+
+	r.customerUpdated(&prev, c)
+	return nil
 }
 
 // UpdateCustomerByProvider updates a given customer by id field
 func (r *EntityRepo) UpdateCustomerByProvider(c *Customer) error {
-	return orm.Update(r.db, c, "WHERE provider = $1 AND provider_id = $2", c.Provider, c.ProviderID)
+	var prev Customer
+	if err := orm.Get(r.db, &prev, "WHERE provider = $1 AND provider_id = $2", c.Provider, c.ProviderID); err != nil {
+		return err
+	}
+
+	if err := orm.Update(r.db, c, "WHERE provider = $1 AND provider_id = $2", c.Provider, c.ProviderID); err != nil {
+		return err
+	}
+
+	r.customerUpdated(&prev, c)
+	return nil
 }
 
 // AddCustomer inserts a customer into the repository
 func (r *EntityRepo) AddCustomer(c *Customer) error {
-	return orm.Add(r.db, c)
+	if err := orm.Add(r.db, c); err != nil {
+		return err
+	}
+	r.customerAdded(c)
+	return nil
 }
 
 // RemoveCustomerByProviderID removes customer by given provider
 func (r *EntityRepo) RemoveCustomerByProvider(provider, providerID string) error {
-	return orm.Exec(r.db, "DELETE FROM pay.customer WHERE provider = $1 AND provider_id = $2", provider, providerID)
+	var c Customer
+	if err := orm.Get(r.db, &c, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
+		return err
+	}
+
+	if err := orm.Remove(r.db, &c, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
+		return err
+	}
+
+	r.customerRemoved(&c)
+	return nil
 }
 
-// ListPlans returns a list of all active plans
+// ListPlans returns a list of all active plans in alphabetic order
 func (r *EntityRepo) ListPlans() ([]Plan, error) {
 	var plans []Plan
-	if err := orm.List(r.db, &plans, "WHERE active = true ORDER BY price ASC"); err != nil {
+	if err := orm.List(r.db, &plans, "WHERE active = TRUE ORDER BY name ASC"); err != nil {
 		return nil, err
 	}
 
@@ -205,22 +235,55 @@ func (r *EntityRepo) ListPlans() ([]Plan, error) {
 
 // AddPlan adds a plan to the repository
 func (r *EntityRepo) AddPlan(p *Plan) error {
-	return orm.Add(r.db, p)
+	if err := orm.Add(r.db, p); err != nil {
+		return err
+	}
+
+	r.planAdded(p)
+	return nil
 }
 
 // RemovePlanByProviderID deletes a plan by provider id from the repository
 func (r *EntityRepo) RemovePlanByProvider(provider, providerID string) error {
-	return orm.Exec(r.db, "DELETE FROM pay.plan WHERE provider = $1 AND provider_id = $2", provider, providerID)
+	var p Plan
+	if err := orm.Get(r.db, &p, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
+		return err
+	}
+	if err := orm.Remove(r.db, &p, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
+		return err
+	}
+	r.planRemoved(&p)
+	return nil
 }
 
 // UpdatePlanByID updates the plan matching the id field
 func (r *EntityRepo) UpdatePlanByID(p *Plan) error {
-	return orm.UpdateByID(r.db, p)
+	var prev Plan
+	prev.ID = p.ID
+	if err := orm.GetByID(r.db, &prev); err != nil {
+		return err
+	}
+
+	if err := orm.UpdateByID(r.db, p); err != nil {
+		return err
+	}
+	r.planUpdated(&prev, p)
+	return nil
 }
 
 // UpdatePlanByProvider updates the plan matching the provider and provider id
 func (r *EntityRepo) UpdatePlanByProvider(p *Plan) error {
-	return orm.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID)
+	var prev Plan
+	if err := orm.Get(r.db, &prev, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID); err != nil {
+		return err
+	}
+
+	if err := orm.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2", p.Provider, p.ProviderID); err != nil {
+		return err
+	}
+
+	r.planUpdated(&prev, p)
+	return nil
 }
 
 // GetPlanByID returns the plan matching the internal id
@@ -274,36 +337,48 @@ func (r *EntityRepo) GetPlanByCustomerEmail(email string) (*Plan, error) {
 	return &p, nil
 }
 
-func (r *EntityRepo) RemovePriceByID(id int) error {
-	return orm.Remove(r.db, &Price{}, "WHERE id = $1")
-}
-
 func (r *EntityRepo) AddSubscription(s *Subscription) error {
 	if err := orm.Add(r.db, s); err != nil {
 		return err
 	}
+	r.subAdded(s)
 	return nil
 }
 
 func (r *EntityRepo) UpdateSubscriptionByID(s *Subscription) error {
-	return orm.UpdateByID(r.db, s)
+	var prev Subscription
+	prev.ID = s.ID
+	if err := orm.GetByID(r.db, &prev); err != nil {
+		return err
+	}
+
+	if err := orm.UpdateByID(r.db, s); err != nil {
+		return err
+	}
+
+	r.subUpdated(&prev, s)
+	return nil
 }
 
 func (r *EntityRepo) UpdateSubscriptionByProvider(s *Subscription) error {
-	prev, _ := r.GetSubscriptionByProvider(s.Provider, s.ProviderID)
-	err := orm.Update(r.db, s, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID)
-	if err != nil {
+	var prev Subscription
+	if err := orm.Get(r.db, &prev, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID); err != nil {
 		return err
 	}
-	r.subUpdated(prev, s)
+
+	if err := orm.Update(r.db, s, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID); err != nil {
+		return err
+	}
+
+	r.subUpdated(&prev, s)
 	return nil
 }
 
 func (r *EntityRepo) RemoveSubscriptionByProvider(s *Subscription) error {
-	err := orm.Remove(r.db, s, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID)
-	if err != nil {
+	if err := orm.Remove(r.db, s, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID); err != nil {
 		return err
 	}
+
 	r.subRemoved(s)
 	return nil
 }
