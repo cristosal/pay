@@ -247,7 +247,6 @@ func (StripeProvider) convertProduct(p *stripe.Product) *Plan {
 		Provider:    ProviderStripe,
 		ProviderID:  p.ID,
 		Active:      p.Active,
-		Features:    p.Attributes,
 	}
 }
 

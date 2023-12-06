@@ -40,7 +40,6 @@ type Plan struct {
 	Provider    string
 	ProviderID  string
 	Active      bool
-	Features    []string
 }
 
 func (p *Plan) Table() string {
