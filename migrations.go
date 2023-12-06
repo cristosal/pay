@@ -74,7 +74,7 @@ var migrations = []orm.Migration{
 			provider VARCHAR(255) NOT NULL,
 			provider_id VARCHAR(255) NOT NULL,
 			event_type VARCHAR(255) NOT NULL,
-			payload JSONB NOT NULL,
+			payload JSONB NOT NULL
 		);`,
 		Down: "DROP TABLE {{ .Schema }}.webhook_event",
 	},
