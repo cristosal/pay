@@ -45,10 +45,10 @@ func (s *StripeProvider) syncPrices() error {
 			continue
 		}
 
-		_, err = s.Repo().GetPriceByProvider(ProviderStripe, p.ID)
+		_, err = s.GetPriceByProvider(ProviderStripe, p.ID)
 
 		if errors.Is(err, orm.ErrNotFound) {
-			if err := s.Repo().updatePriceByProvider(pr); err != nil {
+			if err := s.updatePriceByProvider(pr); err != nil {
 				log.Printf("error updating price %s: %v", pr.ProviderID, err)
 			}
 			continue
@@ -59,7 +59,7 @@ func (s *StripeProvider) syncPrices() error {
 			continue
 		}
 
-		if err := s.Repo().addPrice(pr); err != nil {
+		if err := s.addPrice(pr); err != nil {
 			log.Printf("error adding price %s: %v", pr.ProviderID, err)
 			continue
 		}
@@ -74,16 +74,16 @@ func (s *StripeProvider) syncCustomers() error {
 		cust := it.Customer()
 		c := s.convertCustomer(cust)
 
-		found, _ := s.Repo().GetCustomerByProvider(ProviderStripe, cust.ID)
+		found, _ := s.GetCustomerByProvider(ProviderStripe, cust.ID)
 		if found == nil {
-			if err := s.Repo().addCustomer(c); err != nil {
+			if err := s.addCustomer(c); err != nil {
 				log.Printf("error while adding stripe customer with id %s: %v", c.ProviderID, err)
 			}
 			continue
 		}
 
 		c.ID = found.ID
-		if err := s.Repo().updateCustomerByProvider(c); err != nil {
+		if err := s.updateCustomerByProvider(c); err != nil {
 			log.Printf("error while updating stripe customer with id %s: %v", c.ProviderID, err)
 		}
 	}
@@ -103,10 +103,10 @@ func (s *StripeProvider) syncPlans() error {
 		pl := s.convertProduct(p)
 
 		// we need to see if we already have it
-		_, err := s.Repo().GetPlanByProvider(ProviderStripe, p.ID)
+		_, err := s.GetPlanByProvider(ProviderStripe, p.ID)
 
 		if errors.Is(err, orm.ErrNotFound) {
-			if err := s.Repo().addPlan(pl); err != nil {
+			if err := s.addPlan(pl); err != nil {
 				log.Printf("error while adding plan %s: %v", p.ID, err)
 			}
 			continue
@@ -117,7 +117,7 @@ func (s *StripeProvider) syncPlans() error {
 			continue
 		}
 
-		if err := s.Repo().updatePlanByProvider(pl); err != nil {
+		if err := s.updatePlanByProvider(pl); err != nil {
 			log.Printf("error updating plan %s: %v", pl.ProviderID, err)
 		}
 	}
@@ -135,10 +135,10 @@ func (s *StripeProvider) syncSubscriptions() error {
 			log.Printf("error converting subscription %s: %v", sub.ID, err)
 		}
 
-		_, err = s.Repo().GetSubscriptionByProvider(ProviderStripe, sub.ID)
+		_, err = s.GetSubscriptionByProvider(ProviderStripe, sub.ID)
 		if errors.Is(err, orm.ErrNotFound) {
 			// we add it
-			if err := s.Repo().addSubscription(subscr); err != nil {
+			if err := s.addSubscription(subscr); err != nil {
 				log.Printf("error adding subscription %s: %v", subscr.ProviderID, err)
 			}
 			continue
@@ -149,7 +149,7 @@ func (s *StripeProvider) syncSubscriptions() error {
 			continue
 		}
 
-		if err := s.Repo().updateSubscriptionByProvider(subscr); err != nil {
+		if err := s.updateSubscriptionByProvider(subscr); err != nil {
 			log.Printf("error updating subscription %s: %v", subscr.ProviderID, err)
 			continue
 		}

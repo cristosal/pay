@@ -1,7 +1,6 @@
 package pay
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -27,6 +26,7 @@ type (
 
 	// StripeProvider interfaces with stripe for customer, plan and subscription data
 	StripeProvider struct {
+		*Repo
 		config *StripeConfig
 	}
 )
@@ -37,17 +37,10 @@ func NewStripeProvider(config *StripeConfig) *StripeProvider {
 		config = new(StripeConfig)
 	}
 	stripe.Key = config.Key
-	return &StripeProvider{config}
-}
-
-// Init creates necessary tables by executing migrations
-func (s *StripeProvider) Init(ctx context.Context) error {
-	return s.Repo().Init(ctx)
-}
-
-// Repo returns the entity repository
-func (s *StripeProvider) Repo() *Repo {
-	return s.config.Repo
+	return &StripeProvider{
+		Repo:   config.Repo,
+		config: config,
+	}
 }
 
 // AddPlan directly in stripe
@@ -76,7 +69,7 @@ func (s *StripeProvider) AddPrice(p *Price) error {
 		sched = string(stripe.PriceRecurringIntervalMonth)
 	}
 
-	pl, err := s.Repo().GetPlanByID(p.PlanID)
+	pl, err := s.GetPlanByID(p.PlanID)
 	if err != nil {
 		return fmt.Errorf("plan with id %d not found", p.PlanID)
 	}
@@ -134,12 +127,12 @@ type CheckoutRequest struct {
 // Checkout returns the url that a user has to visit in order to complete payment
 // it registers the customer if it was unavailable
 func (s *StripeProvider) Checkout(request *CheckoutRequest) (url string, err error) {
-	customer, err := s.Repo().GetCustomerByID(request.CustomerID)
+	customer, err := s.GetCustomerByID(request.CustomerID)
 	if err != nil {
 		return
 	}
 
-	price, err := s.Repo().GetPriceByID(request.PriceID)
+	price, err := s.GetPriceByID(request.PriceID)
 	if err != nil {
 		return
 	}
