@@ -89,6 +89,26 @@ func (r *Repo) Destroy(ctx context.Context) error {
 	return err
 }
 
+// ListAllCustomers returns a list of prices
+func (r *Repo) ListAllCustomers() ([]Customer, error) {
+	var customers []Customer
+	if err := orm.ListAll(r.db, &customers); err != nil {
+		return nil, err
+	}
+
+	return customers, nil
+}
+
+// ListAllWebhookEvents returns a list of all webhook events
+func (r *Repo) ListAllWebhookEvents() ([]WebhookEvent, error) {
+	var webhookEvents []WebhookEvent
+	if err := orm.ListAll(r.db, &webhookEvents); err != nil {
+		return nil, err
+	}
+
+	return webhookEvents, nil
+}
+
 // ListPrices returns a list of prices
 func (r *Repo) ListPrices() ([]Price, error) {
 	var prices []Price
