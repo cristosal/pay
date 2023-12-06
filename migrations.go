@@ -45,7 +45,9 @@ var migrations = []orm.Migration{
 			amount INT NOT NULL DEFAULT 0,
 			schedule VARCHAR(32) NOT NULL,
 			trial_days INT NOT NULL DEFAULT 0,
+			upsell_price_id INT,
 			FOREIGN KEY (plan_id) REFERENCES {{ .Schema }}.plan (id),
+			FOREIGN KEY (upsell_price) REFERENCES {{ .Schema }}.price (id),
 			UNIQUE (provider, provider_id)
 		);`,
 		Down: "DROP TABLE {{ .Schema }}.price",
