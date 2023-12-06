@@ -3,10 +3,14 @@ package pay
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/checkout/session"
+	"github.com/stripe/stripe-go/v74/customer"
+	"github.com/stripe/stripe-go/v74/price"
+	"github.com/stripe/stripe-go/v74/product"
 )
 
 const ProviderStripe = "stripe"
@@ -44,6 +48,66 @@ func (s *StripeProvider) Init(ctx context.Context) error {
 // Repo returns the entity repository
 func (s *StripeProvider) Repo() *Repo {
 	return s.config.Repo
+}
+
+// AddPlan directly in stripe
+func (s *StripeProvider) AddPlan(p *Plan) error {
+	_, err := product.New(&stripe.ProductParams{
+		Name:        stripe.String(p.Name),
+		Description: stripe.String(p.Description),
+		Active:      stripe.Bool(p.Active),
+	})
+	return err
+}
+
+// RemovePlan from stripe
+func (s *StripeProvider) RemovePlan(p *Plan) error {
+	_, err := product.Del(p.ProviderID, nil)
+	return err
+}
+
+// AddPrice directly in stripe
+func (s *StripeProvider) AddPrice(p *Price) error {
+	var sched string
+	switch p.Schedule {
+	case PricingAnnual:
+		sched = string(stripe.PriceRecurringIntervalYear)
+	case PricingMonthly:
+		sched = string(stripe.PriceRecurringIntervalMonth)
+	}
+
+	pl, err := s.Repo().GetPlanByID(p.PlanID)
+	if err != nil {
+		return fmt.Errorf("plan with id %d not found", p.PlanID)
+	}
+
+	_, err = price.New(&stripe.PriceParams{
+		Currency:   stripe.String(p.Currency),
+		UnitAmount: stripe.Int64(p.Amount),
+		Product:    stripe.String(pl.ProviderID),
+		Recurring: &stripe.PriceRecurringParams{
+			Interval:        stripe.String(sched),
+			TrialPeriodDays: stripe.Int64(int64(p.TrialDays)),
+			IntervalCount:   stripe.Int64(1),
+		},
+	})
+
+	return err
+}
+
+// AddCustomer directly in stripe
+func (s *StripeProvider) AddCustomer(c *Customer) error {
+	_, err := customer.New(&stripe.CustomerParams{
+		Name:  stripe.String(c.Name),
+		Email: stripe.String(c.Email),
+	})
+	return err
+}
+
+// RemoveCustomer directly in stripe
+func (s *StripeProvider) RemoveCustomer(c *Customer) error {
+	_, err := customer.Del(c.ProviderID, nil)
+	return err
 }
 
 // Verify that the checkout was completed

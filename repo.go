@@ -89,6 +89,26 @@ func (r *Repo) Destroy(ctx context.Context) error {
 	return err
 }
 
+// ListPrices returns a list of prices
+func (r *Repo) ListPrices() ([]Price, error) {
+	var prices []Price
+	if err := orm.List(r.db, &prices, ""); err != nil {
+		return nil, err
+	}
+
+	return prices, nil
+}
+
+// ListPrices returns a list of prices
+func (r *Repo) ListPricesByPlanID(planID int64) ([]Price, error) {
+	var prices []Price
+	if err := orm.List(r.db, &prices, "WHERE plan_id = $1", planID); err != nil {
+		return nil, err
+	}
+
+	return prices, nil
+}
+
 // addPrice to plan
 func (r *Repo) addPrice(p *Price) error {
 	if err := orm.Add(r.db, p); err != nil {

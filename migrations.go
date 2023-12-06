@@ -44,6 +44,7 @@ var migrations = []orm.Migration{
 			currency VARCHAR(3) NOT NULL,
 			amount INT NOT NULL DEFAULT 0,
 			schedule VARCHAR(32) NOT NULL,
+			trial_days INT NOT NULL DEFAULT 0,
 			FOREIGN KEY (plan_id) REFERENCES {{ .Schema }}.plan (id),
 			UNIQUE (provider, provider_id)
 		);`,
