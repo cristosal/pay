@@ -24,6 +24,10 @@ type Price struct {
 	TrialDays     int
 }
 
+func (p *Price) TableName() string {
+	return "pay.price"
+}
+
 func (p *Price) HasTrial() bool {
 	return p.TrialDays > 0
 }
@@ -37,7 +41,7 @@ func (p *Price) TrialEnd() time.Time {
 	return time.Now().Add(time.Hour * 24 * time.Duration(p.TrialDays))
 }
 
-// Plan the
+// Plan that customers will subscribe to
 type Plan struct {
 	ID          int64
 	Name        string
@@ -47,7 +51,7 @@ type Plan struct {
 	Active      bool
 }
 
-func (p *Plan) Table() string {
+func (p *Plan) TableName() string {
 	return "pay.plan"
 }
 
@@ -60,7 +64,7 @@ type Customer struct {
 	Email      string // customers email
 }
 
-func (c *Customer) Table() string {
+func (c *Customer) TableName() string {
 	return "pay.customer"
 }
 
