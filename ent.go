@@ -13,15 +13,14 @@ const (
 )
 
 type Price struct {
-	ID            int64
-	PlanID        int64
-	Provider      string
-	ProviderID    string
-	Amount        int64
-	Currency      string
-	Schedule      PricingSchedule
-	UpsellPriceID int64
-	TrialDays     int
+	ID         int64
+	PlanID     int64
+	Provider   string
+	ProviderID string
+	Amount     int64
+	Currency   string
+	Schedule   PricingSchedule
+	TrialDays  int
 }
 
 func (p *Price) TableName() string {
@@ -30,10 +29,6 @@ func (p *Price) TableName() string {
 
 func (p *Price) HasTrial() bool {
 	return p.TrialDays > 0
-}
-
-func (p *Price) HasUpsell() bool {
-	return p.UpsellPriceID != 0
 }
 
 // TrialEnd returns the time at which the trial would end if it started now

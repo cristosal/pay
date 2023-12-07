@@ -47,8 +47,9 @@ func (s *StripeProvider) syncPrices() error {
 
 		_, err = s.GetPriceByProvider(ProviderStripe, p.ID)
 
+		// we did not find the price for the provider
 		if errors.Is(err, orm.ErrNotFound) {
-			if err := s.updatePriceByProvider(pr); err != nil {
+			if err := s.addPrice(pr); err != nil {
 				log.Printf("error updating price %s: %v", pr.ProviderID, err)
 			}
 			continue
@@ -59,7 +60,7 @@ func (s *StripeProvider) syncPrices() error {
 			continue
 		}
 
-		if err := s.addPrice(pr); err != nil {
+		if err := s.updatePriceByProvider(pr); err != nil {
 			log.Printf("error adding price %s: %v", pr.ProviderID, err)
 			continue
 		}

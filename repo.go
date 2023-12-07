@@ -129,6 +129,14 @@ func (r *Repo) ListPricesByPlanID(planID int64) ([]Price, error) {
 	return prices, nil
 }
 
+func (r *Repo) ListAllSubscriptions() ([]Subscription, error) {
+	var subs []Subscription
+	if err := orm.ListAll(r.db, &subs); err != nil {
+		return nil, err
+	}
+	return subs, nil
+}
+
 // addPrice to plan
 func (r *Repo) addPrice(p *Price) error {
 	if err := orm.Add(r.db, p); err != nil {
