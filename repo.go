@@ -109,10 +109,10 @@ func (r *Repo) ListAllWebhookEvents() ([]WebhookEvent, error) {
 	return webhookEvents, nil
 }
 
-// ListPrices returns a list of prices
-func (r *Repo) ListPrices() ([]Price, error) {
+// ListAllPrices returns a list of prices
+func (r *Repo) ListAllPrices() ([]Price, error) {
 	var prices []Price
-	if err := orm.List(r.db, &prices, ""); err != nil {
+	if err := orm.ListAll(r.db, &prices); err != nil {
 		return nil, err
 	}
 
@@ -233,8 +233,8 @@ func (r *Repo) removeCustomerByProvider(provider, providerID string) error {
 	return nil
 }
 
-// ListPlans returns a list of all active plans in alphabetic order
-func (r *Repo) ListPlans() ([]Plan, error) {
+// ListActivePlans returns a list of all active plans in alphabetic order
+func (r *Repo) ListActivePlans() ([]Plan, error) {
 	var plans []Plan
 	if err := orm.List(r.db, &plans, "WHERE active = TRUE ORDER BY name ASC"); err != nil {
 		return nil, err
