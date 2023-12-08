@@ -409,3 +409,20 @@ func (r *Repo) hasWebhookEvent(provider, providerID string) bool {
 func (r *Repo) addWebhookEvent(e *WebhookEvent) error {
 	return orm.Add(r.db, e)
 }
+
+func (r *Repo) GetPlanBySubscriptionID(subID int64) (*Plan, error) {
+	var p Plan
+
+	sql := fmt.Sprintf("SELECT %s FROM %s p INNER JOIN %s pr ON pr.plan_id = p.id INNER JOIN %s s ON s.price_id = pr.id WHERE s.id = $1",
+		orm.Columns(&p).PrefixedList("p"),
+		orm.TableName(&p),
+		orm.TableName(&Price{}),
+		orm.TableName(&Subscription{}),
+	)
+
+	if err := orm.QueryRow(r.db, &p, sql, subID); err != nil {
+		return nil, err
+	}
+
+	return &p, nil
+}
