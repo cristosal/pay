@@ -1,3 +1,5 @@
+github.com/cristosal/orm v0.0.1-beta h1:UPQWdhPqJKxiw2sbu0lN5A3zWEYKsXqM/eMFCdT1/6Y=
+github.com/cristosal/orm v0.0.1-beta/go.mod h1:nGvMqBxHKOMc+i/09bRzPc55OxNS4k6mnaaO4Bx/jKw=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
