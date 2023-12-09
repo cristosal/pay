@@ -515,3 +515,8 @@ func (r *Repo) RemoveSubscriptionUser(su *SubscriptionUser) error {
 func (r *Repo) AddPlanGroup(pg *PriceGroup) error {
 	return orm.Add(r.DB, pg)
 }
+
+func (r *Repo) RemovePlanGroup(pg *PriceGroup) error {
+	return orm.Remove(r.DB, pg, "WHERE group_id = $1 AND plan_id = $2",
+		pg.GroupID, pg.PlanID)
+}
