@@ -3,6 +3,7 @@ package pay
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/cristosal/orm"
@@ -10,6 +11,12 @@ import (
 
 // DefaultSchema where tables will be stored can be overriden using
 const DefaultSchema = "pay"
+
+var (
+	ErrSubscriptionNotFound  = errors.New("subscription not found")
+	ErrSubscriptionNotActive = errors.New("subscription not active")
+	ErrGroupNotFound         = errors.New("group not found")
+)
 
 type Migration = orm.Migration
 
@@ -433,9 +440,78 @@ func (r *Repo) GetPlanBySubscriptionID(subID int64) (*Plan, error) {
 		orm.TableName(&Subscription{}),
 	)
 
-	if err := orm.QueryRow(r.db, &p, sql, subID); err != nil {
+	if err := orm.QueryRow(r.DB, &p, sql, subID); err != nil {
 		return nil, err
 	}
 
 	return &p, nil
+}
+
+func (r *Repo) GetSubscriptionByUserID(userID int64) (*Subscription, error) {
+	var s Subscription
+	columns := orm.Columns(&s).PrefixedList("s")
+
+	sql := fmt.Sprintf("SELECT %s FROM %s s INNER JOIN %s su ON su.subscription_id = s.subscription_id AND su.user_id = $1",
+		columns,
+		orm.TableName(&s),
+		orm.TableName(&SubscriptionUser{}),
+	)
+
+	if err := orm.QueryRow(r.DB, &s, sql, userID); err != nil {
+		if errors.Is(err, orm.ErrNotFound) {
+			return nil, ErrSubscriptionNotFound
+		}
+
+		return nil, err
+	}
+
+	return &s, nil
+}
+
+func (r *Repo) GetGroupByUserID(userID int64) (groupID int64, err error) {
+	sub, err := r.GetSubscriptionByUserID(userID)
+	if err != nil {
+		return
+	}
+
+	if !sub.Active {
+		err = ErrSubscriptionNotActive
+		return
+	}
+
+	var pg PriceGroup
+
+	if err = orm.Get(r.DB, &pg, "WHERE price_id = $1", sub.PriceID); err != nil {
+		return
+	}
+
+	groupID = pg.GroupID
+	return
+}
+
+func (r *Repo) CountSubscriptionUsers(subID int64) (int64, error) {
+	return orm.Count(r.DB, &SubscriptionUser{}, "WHERE subscription_id = $1", subID)
+}
+
+func (r *Repo) AddSubscriptionUser(su *SubscriptionUser) error {
+	var s Subscription
+
+	if err := orm.GetByID(r.DB, &s); err != nil {
+		if errors.Is(err, orm.ErrNotFound) {
+			return ErrSubscriptionNotFound
+		}
+
+		return err
+	}
+
+	return orm.Add(r.DB, su)
+}
+
+func (r *Repo) RemoveSubscriptionUser(su *SubscriptionUser) error {
+	return orm.Remove(r.DB, su, "WHERE subscription_id = $1 and user_id = $2",
+		su.SubscriptionID, su.UserID)
+}
+
+func (r *Repo) AddPlanGroup(pg *PriceGroup) error {
+	return orm.Add(r.DB, pg)
 }

@@ -79,4 +79,26 @@ var migrations = []orm.Migration{
 		);`,
 		Down: "DROP TABLE {{ .Schema }}.webhook_event",
 	},
+	{
+		Name:        "subscription_user table",
+		Description: "creates a subscription user table",
+		Up: `CREATE TABLE {{ .Schema }}.subscription_user (
+				user_id INT NOT NULL,
+				subscription_id INT NOT NULL,
+				FOREIGN KEY (subscription_id) REFERENCES {{ .Schema }}.subscription (id) ON DELETE CASCADE,
+				PRIMARY KEY (user_id, subscription_id)
+			)`,
+		Down: "DROP TABLE {{ .Schema }}.subscription_user",
+	},
+	{
+		Name:        "plan group table",
+		Description: "creates a plan group table",
+		Up: `CREATE TABLE {{ .Schema }}.plan_group (
+				plan_id INT NOT NULL,
+				group_id INT NOT NULL,
+				FOREIGN KEY (plan_id) REFERENCES {{ .Schema }}.plan (id) ON DELETE CASCADE,
+				PRIMARY KEY (plan_id, group_id)
+			)`,
+		Down: "DROP TABLE {{ .Schema }}.plan_group",
+	},
 }
