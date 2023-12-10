@@ -83,10 +83,10 @@ var migrations = []orm.Migration{
 		Name:        "subscription_user table",
 		Description: "creates a subscription user table",
 		Up: `CREATE TABLE {{ .Schema }}.subscription_user (
-				user_id INT NOT NULL,
+				username TEXT NOT NULL,
 				subscription_id INT NOT NULL,
 				FOREIGN KEY (subscription_id) REFERENCES {{ .Schema }}.subscription (id) ON DELETE CASCADE,
-				PRIMARY KEY (user_id, subscription_id)
+				PRIMARY KEY (username, subscription_id)
 			)`,
 		Down: "DROP TABLE {{ .Schema }}.subscription_user",
 	},
