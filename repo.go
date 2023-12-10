@@ -339,9 +339,34 @@ func (r *Repo) GetPlanByName(name string) (*Plan, error) {
 }
 
 func (r *Repo) addSubscription(s *Subscription) error {
-	if err := orm.Add(r.db, s); err != nil {
+	// get customer as we will be adding a user with same email
+	cust, err := r.GetCustomerByID(s.CustomerID)
+	if err != nil {
 		return err
 	}
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	if err := orm.Add(tx, s); err != nil {
+		return err
+	}
+
+	if err := orm.Add(tx, &SubscriptionUser{
+		SubscriptionID: s.ID,
+		Username:       cust.Email,
+	}); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
 	r.subAdded(s)
 	return nil
 }
