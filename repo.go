@@ -15,7 +15,6 @@ const DefaultSchema = "pay"
 var (
 	ErrSubscriptionNotFound  = errors.New("subscription not found")
 	ErrSubscriptionNotActive = errors.New("subscription not active")
-	ErrGroupNotFound         = errors.New("group not found")
 )
 
 type Migration = orm.Migration
