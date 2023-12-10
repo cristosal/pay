@@ -145,3 +145,37 @@ provider.OnSubscriptionRemoved(func (s *Subscription) {
 
 These events are available for Plans, Customers, and Prices as well.
 
+## Associating multiple users with a subscription
+
+Sometimes you want to associate multiple users with one subscription. This can be the case in seat-based plans where a customer can give `x` amount of users access to an account.
+
+>When a subscription is first added, a `SubscriptionUser` is added with username being the email of the customer that purchased the subscription.
+
+To help facilitate this we have the `SubscriptionUser` entity
+
+```go
+type SubscriptionUser struct {
+	SubscriptionID int64
+	Username       string
+}
+```
+
+*Username is the unique identifier for the user.*
+
+We can manage seats by using the following methods
+
+```go
+func (r *Repo) AddSubscriptionUser(su *SubscriptionUser) error
+
+func (r *Repo) RemoveSubscriptionUser(su *SubscriptionUser) error
+
+func (r *Repo) CountSubscriptionUsers(subID int64) (int64, error)
+```
+
+If we want to get the underlying subscription or plan for the user...
+
+```go
+func (r *Repo) GetSubscriptionByUsername(username string) (*Subscription, error)
+
+func (r *Repo) GetPlanByUsername(username string) (*Plan, error)
+```
