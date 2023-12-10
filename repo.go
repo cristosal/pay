@@ -483,7 +483,7 @@ func (r *Repo) GetPlanByUsername(username string) (*Plan, error) {
 	}
 
 	var pl Plan
-	sql := fmt.Sprintf("SELECT %s FROM %s p INNER JOIN %s pr on pr.plan_id WHERE pr.id = $1",
+	sql := fmt.Sprintf("SELECT %s FROM %s p INNER JOIN %s pr ON pr.plan_id AND pr.id = $1",
 		orm.Columns(&pl).PrefixedList("p"),
 		orm.TableName(&pl),
 		orm.TableName(&Price{}),
