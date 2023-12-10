@@ -90,15 +90,4 @@ var migrations = []orm.Migration{
 			)`,
 		Down: "DROP TABLE {{ .Schema }}.subscription_user",
 	},
-	{
-		Name:        "plan group table",
-		Description: "creates a plan group table",
-		Up: `CREATE TABLE {{ .Schema }}.plan_group (
-				plan_id INT NOT NULL,
-				group_id INT NOT NULL,
-				FOREIGN KEY (plan_id) REFERENCES {{ .Schema }}.plan (id) ON DELETE CASCADE,
-				PRIMARY KEY (plan_id, group_id)
-			)`,
-		Down: "DROP TABLE {{ .Schema }}.plan_group",
-	},
 }

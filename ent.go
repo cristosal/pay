@@ -91,18 +91,9 @@ func (e *WebhookEvent) TableName() string {
 
 type SubscriptionUser struct {
 	SubscriptionID int64
-	UserID         int64
+	Username       string
 }
 
 func (SubscriptionUser) TableName() string {
 	return "pay.subscription_user"
-}
-
-type PriceGroup struct {
-	PlanID  int64
-	GroupID int64
-}
-
-func (PriceGroup) TableName() string {
-	return "pay.price_group"
 }
