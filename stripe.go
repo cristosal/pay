@@ -36,6 +36,7 @@ func NewStripeProvider(config *StripeConfig) *StripeProvider {
 	if config == nil {
 		config = new(StripeConfig)
 	}
+
 	stripe.Key = config.Key
 	return &StripeProvider{
 		Repo:   config.Repo,

@@ -172,7 +172,6 @@ func (r *Repo) updatePriceByProvider(p *Price) error {
 
 	err := orm.Update(r.db, p, "WHERE provider = $1 AND provider_id = $2",
 		p.Provider, p.ProviderID)
-
 	if err != nil {
 		return err
 	}
@@ -453,7 +452,7 @@ func (r *Repo) GetSubscriptionByUsername(username string) (*Subscription, error)
 	var s Subscription
 	columns := orm.Columns(&s).PrefixedList("s")
 
-	sql := fmt.Sprintf("SELECT %s FROM %s s INNER JOIN %s su ON su.subscription_id = s.subscription_id AND su.username = $1",
+	sql := fmt.Sprintf("SELECT %s FROM %s s INNER JOIN %s su ON su.subscription_id = s.id AND su.username = $1",
 		columns,
 		orm.TableName(&s),
 		orm.TableName(&SubscriptionUser{}),
@@ -472,7 +471,6 @@ func (r *Repo) GetSubscriptionByUsername(username string) (*Subscription, error)
 
 func (r *Repo) GetPlanByUsername(username string) (*Plan, error) {
 	sub, err := r.GetSubscriptionByUsername(username)
-
 	if err != nil {
 		return nil, err
 	}
@@ -502,6 +500,8 @@ func (r *Repo) CountSubscriptionUsers(subID int64) (int64, error) {
 func (r *Repo) AddSubscriptionUser(su *SubscriptionUser) error {
 	var s Subscription
 
+	s.ID = su.SubscriptionID
+
 	if err := orm.GetByID(r.db, &s); err != nil {
 		if errors.Is(err, orm.ErrNotFound) {
 			return ErrSubscriptionNotFound
@@ -516,4 +516,15 @@ func (r *Repo) AddSubscriptionUser(su *SubscriptionUser) error {
 func (r *Repo) RemoveSubscriptionUser(su *SubscriptionUser) error {
 	return orm.Remove(r.db, su, "WHERE subscription_id = $1 and username = $2",
 		su.SubscriptionID, su.Username)
+}
+
+// ListUsername returns a list of all usernames attached to subscription
+func (r *Repo) ListUsernames(subID int64) ([]string, error) {
+	sql := fmt.Sprintf("SELECT username from %s WHERE subscription_id = $1", orm.TableName(&SubscriptionUser{}))
+	rows, err := r.db.Query(sql, subID)
+	if err != nil {
+		return nil, err
+	}
+
+	return orm.CollectStrings(rows)
 }
