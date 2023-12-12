@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/cristosal/orm"
-	"github.com/cristosal/orm/schema"
 	"github.com/stripe/stripe-go/v74/customer"
 	"github.com/stripe/stripe-go/v74/price"
 	"github.com/stripe/stripe-go/v74/product"
@@ -36,9 +35,11 @@ func (s *StripeProvider) Sync() error {
 
 func (s *StripeProvider) syncPrices() error {
 	it := price.List(nil)
+	var ids []string
 
 	for it.Next() {
 		p := it.Price()
+		ids = append(ids, p.ID)
 
 		pr, err := s.convertPrice(p)
 		if err != nil {
@@ -67,16 +68,21 @@ func (s *StripeProvider) syncPrices() error {
 		}
 	}
 
-	return nil
+	if err := it.Err(); err != nil {
+		return err
+	}
+
+	return s.removePriceOrphans(ProviderStripe, ids)
+
 }
 
 func (s *StripeProvider) syncCustomers() error {
-	values := []any{ProviderStripe}
+	var ids []string
 
 	it := customer.List(nil)
 	for it.Next() {
 		cust := it.Customer()
-		values = append(values, cust.ID)
+		ids = append(ids, cust.ID)
 		c := s.convertCustomer(cust)
 
 		found, _ := s.GetCustomerByProvider(ProviderStripe, cust.ID)
@@ -88,7 +94,6 @@ func (s *StripeProvider) syncCustomers() error {
 		}
 
 		c.ID = found.ID
-
 		if c.Name != found.Name || c.Email != found.Email {
 			if err := s.updateCustomerByProvider(c); err != nil {
 				log.Printf("error while updating stripe customer with id %s: %v", c.ProviderID, err)
@@ -100,16 +105,16 @@ func (s *StripeProvider) syncCustomers() error {
 		return it.Err()
 	}
 
-	list := schema.ValueList(len(values)-1, 2)
-	sql := fmt.Sprintf("WHERE provider = $1 AND provider_id NOT IN (%s)", list)
-	return orm.Remove(s.db, &Customer{}, sql, values...)
+	return s.removeCustomerOrphans(ProviderStripe, ids)
 }
 
 func (s *StripeProvider) syncPlans() error {
 	it := product.List(nil)
+	var ids []string
 
 	for it.Next() {
 		p := it.Product()
+		ids = append(ids, p.ID)
 		pl := s.convertProduct(p)
 
 		// we need to see if we already have it
@@ -132,14 +137,21 @@ func (s *StripeProvider) syncPlans() error {
 		}
 	}
 
-	return it.Err()
+	if err := it.Err(); err != nil {
+		return err
+	}
+
+	return s.removePlanOrphans(ProviderStripe, ids)
 }
 
 // syncSubscriptions pulls in all subscriptions from stripe
 func (s *StripeProvider) syncSubscriptions() error {
+	var ids []string
 	it := subscription.List(nil)
 	for it.Next() {
 		sub := it.Subscription()
+		ids = append(ids, sub.ID)
+
 		subscr, err := s.convertSubscription(sub)
 		if err != nil {
 			log.Printf("error converting subscription %s: %v", sub.ID, err)
@@ -165,5 +177,17 @@ func (s *StripeProvider) syncSubscriptions() error {
 		}
 	}
 
-	return it.Err()
+	if err := it.Err(); err != nil {
+		return err
+	}
+
+	return s.removeSubscriptionOrphans(ProviderStripe, ids)
+}
+
+func convertStringsToInterfaces(input []string) []interface{} {
+	var result []interface{}
+	for _, v := range input {
+		result = append(result, v)
+	}
+	return result
 }

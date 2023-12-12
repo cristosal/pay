@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/cristosal/orm"
+	"github.com/cristosal/orm/schema"
 )
 
 // DefaultSchema where tables will be stored can be overriden using
@@ -256,6 +257,55 @@ func (r *Repo) removeCustomerByProvider(provider, providerID string) error {
 	}
 
 	r.customerRemoved(&c)
+	return nil
+}
+
+func (r *Repo) removePlanOrphans(provider string, ids []string) error {
+	return removeOrphans[Plan](r.db, provider, ids, r.planRemoved)
+}
+
+func (r *Repo) removePriceOrphans(provider string, ids []string) error {
+	return removeOrphans[Price](r.db, provider, ids, r.priceRemoved)
+}
+
+func (r *Repo) removeSubscriptionOrphans(provider string, ids []string) error {
+	return removeOrphans[Subscription](r.db, provider, ids, r.subRemoved)
+}
+
+func (r *Repo) removeCustomerOrphans(provider string, ids []string) error {
+	return removeOrphans[Customer](r.db, provider, ids, r.customerRemoved)
+}
+
+func removeOrphans[T any](r orm.QuerierExecuter, provider string, providerIDs []string, cb func(*T)) error {
+	var (
+		valueList = schema.ValueList(len(providerIDs), 2)
+		query     = fmt.Sprintf("WHERE provider = $1 AND provider_id NOT IN (%s)", valueList)
+		deleted   []T
+		values    []any
+	)
+
+	values = append(values, provider)
+	values = append(values, convertStringsToInterfaces(providerIDs)...)
+
+	// list entities to be deleted
+	if err := orm.List(r, &deleted, query, values...); err != nil {
+		if errors.Is(err, orm.ErrNotFound) {
+			// no entities are stored locally that need to be deleted
+			return nil
+		}
+
+		return fmt.Errorf("error listing entities for deletion: %v", err)
+	}
+
+	for _, ent := range deleted {
+		if err := orm.RemoveByID(r, &ent); err != nil {
+			return err
+		}
+
+		// fire callbacks
+		cb(&ent)
+	}
+
 	return nil
 }
 
