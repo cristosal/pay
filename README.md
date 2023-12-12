@@ -6,7 +6,7 @@ Pay serves as an intermediary between your application and third party payment p
 Pay synchronizes with the provider and stores data in a way that is provider-agnostic. 
 Data can be kept in sync via  a `Webhook() http.Handler`  that receives events from the provider, or manually via the `Sync` method. This approach boosts your application's robustness, speeds up data retrieval, and allows you to support multiple providers.
 
-To see an example of a micro service that uses this package check out https://github.com/cristosal/micropay
+To see an example of a micro service that uses this package check out https://github.com/cristosal/cent
 
 ## Installation
 
