@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/cristosal/orm"
+	"github.com/cristosal/orm/schema"
 	"github.com/stripe/stripe-go/v74/customer"
 	"github.com/stripe/stripe-go/v74/price"
 	"github.com/stripe/stripe-go/v74/product"
@@ -70,9 +71,12 @@ func (s *StripeProvider) syncPrices() error {
 }
 
 func (s *StripeProvider) syncCustomers() error {
+	values := []any{ProviderStripe}
+
 	it := customer.List(nil)
 	for it.Next() {
 		cust := it.Customer()
+		values = append(values, cust.ID)
 		c := s.convertCustomer(cust)
 
 		found, _ := s.GetCustomerByProvider(ProviderStripe, cust.ID)
@@ -84,8 +88,11 @@ func (s *StripeProvider) syncCustomers() error {
 		}
 
 		c.ID = found.ID
-		if err := s.updateCustomerByProvider(c); err != nil {
-			log.Printf("error while updating stripe customer with id %s: %v", c.ProviderID, err)
+
+		if c.Name != found.Name || c.Email != found.Email {
+			if err := s.updateCustomerByProvider(c); err != nil {
+				log.Printf("error while updating stripe customer with id %s: %v", c.ProviderID, err)
+			}
 		}
 	}
 
@@ -93,7 +100,9 @@ func (s *StripeProvider) syncCustomers() error {
 		return it.Err()
 	}
 
-	return nil
+	list := schema.ValueList(len(values)-1, 2)
+	sql := fmt.Sprintf("WHERE provider = $1 AND provider_id NOT IN (%s)", list)
+	return orm.Remove(s.db, &Customer{}, sql, values...)
 }
 
 func (s *StripeProvider) syncPlans() error {

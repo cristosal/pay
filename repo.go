@@ -448,17 +448,49 @@ func (r *Repo) GetPlanBySubscriptionID(subID int64) (*Plan, error) {
 	return &p, nil
 }
 
-func (r *Repo) GetSubscriptionByUsername(username string) (*Subscription, error) {
-	var s Subscription
-	columns := orm.Columns(&s).PrefixedList("s")
-
-	sql := fmt.Sprintf("SELECT %s FROM %s s INNER JOIN %s su ON su.subscription_id = s.id AND su.username = $1",
-		columns,
-		orm.TableName(&s),
-		orm.TableName(&SubscriptionUser{}),
+func (r *Repo) GetPlansByUsername(username string) (plans []Plan, err error) {
+	var (
+		s  Subscription
+		su SubscriptionUser
+		pr Price
+		pl Plan
 	)
 
-	if err := orm.QueryRow(r.db, &s, sql, username); err != nil {
+	sql := fmt.Sprintf(`SELECT %s FROM %s s 
+		INNER JOIN
+			%s su ON s.id = su.subscription_id AND su.username = $1 
+		INNER JOIN
+			%s pr ON s.price_id = pr.id
+		INNER JOIN
+			%s pl ON pr.plan_id = pl.id`,
+		orm.Columns(&s).PrefixedList("s"),
+		orm.TableName(&s),
+		orm.TableName(&su),
+		orm.TableName(&pr),
+		orm.TableName(&pl),
+	)
+
+	if err := orm.Query(r.db, &plans, sql, username); err != nil {
+		return nil, err
+	}
+
+	return plans, nil
+}
+
+// GetSubscriptionsByUsername returns all subscriptions that have a user with given username
+func (r *Repo) GetSubscriptionsByUsername(username string) ([]Subscription, error) {
+	var (
+		s    Subscription
+		subs []Subscription
+		cols = orm.Columns(&s).PrefixedList("s")
+		sql  = fmt.Sprintf("SELECT %s FROM %s s INNER JOIN %s su ON su.subscription_id = s.id AND su.username = $1",
+			cols,
+			orm.TableName(&s),
+			orm.TableName(&SubscriptionUser{}),
+		)
+	)
+
+	if err := orm.Query(r.db, &subs, sql, username); err != nil {
 		if errors.Is(err, orm.ErrNotFound) {
 			return nil, ErrSubscriptionNotFound
 		}
@@ -466,31 +498,7 @@ func (r *Repo) GetSubscriptionByUsername(username string) (*Subscription, error)
 		return nil, err
 	}
 
-	return &s, nil
-}
-
-func (r *Repo) GetPlanByUsername(username string) (*Plan, error) {
-	sub, err := r.GetSubscriptionByUsername(username)
-	if err != nil {
-		return nil, err
-	}
-
-	if !sub.Active {
-		return nil, ErrSubscriptionNotActive
-	}
-
-	var pl Plan
-	sql := fmt.Sprintf("SELECT %s FROM %s p INNER JOIN %s pr ON pr.plan_id AND pr.id = $1",
-		orm.Columns(&pl).PrefixedList("p"),
-		orm.TableName(&pl),
-		orm.TableName(&Price{}),
-	)
-
-	if err := orm.QueryRow(r.db, &pl, sql, sub.PriceID); err != nil {
-		return nil, err
-	}
-
-	return &pl, nil
+	return subs, nil
 }
 
 func (r *Repo) CountSubscriptionUsers(subID int64) (int64, error) {
