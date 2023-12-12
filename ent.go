@@ -71,6 +71,7 @@ type Subscription struct {
 	CustomerID int64
 	PriceID    int64
 	Active     bool
+	CreatedAt  time.Time
 }
 
 func (s *Subscription) TableName() string {

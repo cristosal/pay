@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/webhook"
@@ -295,6 +296,7 @@ func (s *StripeProvider) convertSubscription(sub *stripe.Subscription) (*Subscri
 		CustomerID: cust.ID,
 		PriceID:    pr.ID,
 		Active:     sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing,
+		CreatedAt:  time.Unix(sub.Created, 0),
 	}
 
 	return &subscr, nil

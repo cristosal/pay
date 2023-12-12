@@ -61,6 +61,7 @@ var migrations = []orm.Migration{
 			provider VARCHAR(255) NOT NULL,
 			provider_id VARCHAR(255) NOT NULL,
 			active BOOL NOT NULL DEFAULT FALSE,
+			created_at TIMESTAMPTZ NOT NULL,
 			FOREIGN KEY (customer_id) REFERENCES {{ .Schema }}.customer(id),
 			FOREIGN KEY (price_id) REFERENCES {{ .Schema }}.price(id),
 			UNIQUE (provider, provider_id)
