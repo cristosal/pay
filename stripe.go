@@ -55,8 +55,8 @@ func (s *StripeProvider) AddPlan(p *Plan) error {
 }
 
 // RemovePlan from stripe
-func (s *StripeProvider) RemovePlan(p *Plan) error {
-	_, err := product.Del(p.ProviderID, nil)
+func (s *StripeProvider) RemovePlanByProviderID(providerID string) error {
+	_, err := product.Del(providerID, nil)
 	return err
 }
 
@@ -99,8 +99,8 @@ func (s *StripeProvider) AddCustomer(c *Customer) error {
 }
 
 // RemoveCustomer directly in stripe
-func (s *StripeProvider) RemoveCustomer(c *Customer) error {
-	_, err := customer.Del(c.ProviderID, nil)
+func (s *StripeProvider) RemoveCustomerByProviderID(providerID string) error {
+	_, err := customer.Del(providerID, nil)
 	return err
 }
 
