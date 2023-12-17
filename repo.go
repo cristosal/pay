@@ -92,15 +92,6 @@ func (r *Repo) GetPriceByProvider(provider, providerID string) (*Price, error) {
 	return &p, nil
 }
 
-// GetPricesByPlanID returns the planID
-func (r *Repo) GetPricesByPlanID(planID int64) ([]Price, error) {
-	var p []Price
-	if err := orm.List(r.db, &p, "WHERE plan_id = $1", planID); err != nil {
-		return nil, err
-	}
-	return p, nil
-}
-
 // Destroy removes all tables and relationships
 func (r *Repo) Destroy(ctx context.Context) error {
 	orm.SetSchema(r.schema)
@@ -450,13 +441,13 @@ func (r *Repo) GetSubscriptionByCustomerID(customerID int64) ([]Subscription, er
 	return s, nil
 }
 
-func (r *Repo) GetSubscriptionByPlanID(planID int64) (*Subscription, error) {
-	var s Subscription
-	if err := orm.Get(r.db, &s, "WHERE plan_id = $1", planID); err != nil {
+func (r *Repo) ListSubscriptionsByPlanID(planID int64) ([]Subscription, error) {
+	var s []Subscription
+	if err := orm.List(r.db, &s, "WHERE plan_id = $1", planID); err != nil {
 		return nil, err
 	}
 
-	return &s, nil
+	return s, nil
 }
 
 func (r *Repo) GetSubscriptionByProvider(provider, providerID string) (*Subscription, error) {
@@ -527,8 +518,8 @@ func (r *Repo) GetPlansByUsername(username string) (plans []Plan, err error) {
 	return plans, nil
 }
 
-// GetSubscriptionsByUsername returns all subscriptions that have a user with given username
-func (r *Repo) GetSubscriptionsByUsername(username string) ([]Subscription, error) {
+// ListSubscriptionsByUsername returns all subscriptions that have a user with given username
+func (r *Repo) ListSubscriptionsByUsername(username string) ([]Subscription, error) {
 	var (
 		s    Subscription
 		subs []Subscription
