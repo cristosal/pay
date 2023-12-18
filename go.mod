@@ -3,11 +3,10 @@ module github.com/cristosal/pay
 go 1.21.4
 
 require (
-	github.com/cristosal/orm v0.0.3-beta
+	github.com/cristosal/orm v0.0.4-beta
 	github.com/stripe/stripe-go/v74 v74.30.0
 )
 
-replace github.com/cristosal/orm => ../orm
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
