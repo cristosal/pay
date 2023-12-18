@@ -73,7 +73,6 @@ func (s *StripeProvider) syncPrices() error {
 	}
 
 	return s.removePriceOrphans(ProviderStripe, ids)
-
 }
 
 func (s *StripeProvider) syncCustomers() error {
@@ -118,7 +117,7 @@ func (s *StripeProvider) syncPlans() error {
 		pl := s.convertProduct(p)
 
 		// we need to see if we already have it
-		_, err := s.GetPlanByProvider(ProviderStripe, p.ID)
+		_, err := s.GetPlanByProviderID(ProviderStripe, p.ID)
 
 		if errors.Is(err, orm.ErrNotFound) {
 			if err := s.addPlan(pl); err != nil {

@@ -59,7 +59,6 @@ func (s *StripeProvider) Webhook() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, MaxBodyBytes)
 		payload, err := io.ReadAll(r.Body)
-
 		if err != nil {
 			log.Printf("Error reading request body: %v\n", err)
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -70,7 +69,6 @@ func (s *StripeProvider) Webhook() http.HandlerFunc {
 		// with the webhook signing key.
 		sig := r.Header.Get("Stripe-Signature")
 		event, err := webhook.ConstructEvent(payload, sig, s.config.WebhookSecret)
-
 		if err != nil {
 			log.Printf("Error verifying webhook signature: %v\n", err)
 			w.WriteHeader(http.StatusBadRequest) // Return a 400 error on a bad signature
@@ -252,7 +250,7 @@ func (StripeProvider) convertProduct(p *stripe.Product) *Plan {
 }
 
 func (s *StripeProvider) convertPrice(p *stripe.Price) (*Price, error) {
-	pl, err := s.GetPlanByProvider(ProviderStripe, p.Product.ID)
+	pl, err := s.GetPlanByProviderID(ProviderStripe, p.Product.ID)
 	if err != nil {
 		return nil, err
 	}

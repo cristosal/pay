@@ -300,6 +300,15 @@ func removeOrphans[T any](r orm.QuerierExecuter, provider string, providerIDs []
 	return nil
 }
 
+// Lists all plans
+func (r *Repo) ListPlans() ([]Plan, error) {
+	var plans []Plan
+	if err := orm.List(r.db, &plans, "ORDER BY name ASC"); err != nil {
+		return nil, err
+	}
+	return plans, nil
+}
+
 // ListActivePlans returns a list of all active plans in alphabetic order
 func (r *Repo) ListActivePlans() ([]Plan, error) {
 	var plans []Plan
@@ -358,7 +367,7 @@ func (r *Repo) GetPlanByID(id int64) (*Plan, error) {
 }
 
 // GetPlanByProvider returns the plan which matches provider and provider id
-func (r *Repo) GetPlanByProvider(provider, providerID string) (*Plan, error) {
+func (r *Repo) GetPlanByProviderID(provider, providerID string) (*Plan, error) {
 	var p Plan
 
 	if err := orm.Get(r.db, &p, "WHERE provider = $1 AND provider_id = $2", provider, providerID); err != nil {
@@ -433,21 +442,45 @@ func (r *Repo) removeSubscriptionByProvider(s *Subscription) error {
 	return nil
 }
 
-func (r *Repo) GetSubscriptionByCustomerID(customerID int64) ([]Subscription, error) {
+func (r *Repo) ListSubscriptionsByCustomerID(customerID int64) ([]Subscription, error) {
 	var s []Subscription
 	if err := orm.List(r.db, &s, "WHERE customer_id = $1", customerID); err != nil {
 		return nil, err
 	}
+
 	return s, nil
 }
 
 func (r *Repo) ListSubscriptionsByPlanID(planID int64) ([]Subscription, error) {
-	var s []Subscription
-	if err := orm.List(r.db, &s, "WHERE plan_id = $1", planID); err != nil {
+	var (
+		subs []Subscription
+		pr   Price
+		pl   Plan
+		s    Subscription
+	)
+
+	sql := fmt.Sprintf(`SELECT %s FROM %s s INNER JOIN %s pr ON s.price_id = pr.id INNER JOIN %s pl ON pr.plan_id = pl.id AND pl.id = $1`,
+		orm.Columns(&s).PrefixedList("s"),
+		orm.TableName(&s),
+		orm.TableName(&pr),
+		orm.TableName(&pl),
+	)
+
+	if err := orm.Query(r.db, &subs, sql, planID); err != nil {
 		return nil, err
 	}
 
-	return s, nil
+	return subs, nil
+}
+
+func (r *Repo) GetSubscriptionByID(id int64) (*Subscription, error) {
+	var s Subscription
+	s.ID = id
+	if err := orm.GetByID(r.db, &s); err != nil {
+		return nil, err
+	}
+
+	return &s, nil
 }
 
 func (r *Repo) GetSubscriptionByProvider(provider, providerID string) (*Subscription, error) {
@@ -497,19 +530,19 @@ func (r *Repo) GetPlansByUsername(username string) (plans []Plan, err error) {
 		pl Plan
 	)
 
-	sql := fmt.Sprintf(`SELECT %s FROM %s s 
-		INNER JOIN
-			%s su ON s.id = su.subscription_id AND su.username = $1 
-		INNER JOIN
-			%s pr ON s.price_id = pr.id
-		INNER JOIN
-			%s pl ON pr.plan_id = pl.id`,
-		orm.Columns(&s).PrefixedList("s"),
+	sql := fmt.Sprintf(`
+		SELECT %s FROM %s pl 
+		INNER JOIN %s pr ON pr.plan_id = pl.id
+		INNER JOIN %s s ON s.price_id = pr.id
+		INNER JOIN %s su ON su.subscription_id = s.id AND su.username = $1`,
+		orm.Columns(&pl).PrefixedList("pl"),
+		orm.TableName(&pl),
+		orm.TableName(&pr),
 		orm.TableName(&s),
 		orm.TableName(&su),
-		orm.TableName(&pr),
-		orm.TableName(&pl),
 	)
+
+	fmt.Println(sql)
 
 	if err := orm.Query(r.db, &plans, sql, username); err != nil {
 		return nil, err
