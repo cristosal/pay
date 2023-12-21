@@ -54,6 +54,17 @@ func (s *StripeProvider) AddPlan(p *Plan) error {
 	return err
 }
 
+// UpdatePlan in stripe
+func (s *StripeProvider) UpdatePlan(p *Plan) error {
+	_, err := product.Update(p.ProviderID, &stripe.ProductParams{
+		Name:        stripe.String(p.Name),
+		Description: stripe.String(p.Description),
+		Active:      stripe.Bool(p.Active),
+	})
+
+	return err
+}
+
 // RemovePlan from stripe
 func (s *StripeProvider) RemovePlanByProviderID(providerID string) error {
 	_, err := product.Del(providerID, nil)
@@ -95,6 +106,20 @@ func (s *StripeProvider) AddCustomer(c *Customer) error {
 		Name:  stripe.String(c.Name),
 		Email: stripe.String(c.Email),
 	})
+	return err
+}
+
+// Update Customer directly in stripe
+func (s *StripeProvider) UpdateCustomer(c *Customer) error {
+	if c.ProviderID == "" {
+		return errors.New("missing customer provider id")
+	}
+
+	_, err := customer.Update(c.ProviderID, &stripe.CustomerParams{
+		Name:  stripe.String(c.Name),
+		Email: stripe.String(c.Email),
+	})
+
 	return err
 }
 
