@@ -268,6 +268,10 @@ func (r *Repo) removeCustomerOrphans(provider string, ids []string) error {
 }
 
 func removeOrphans[T any](r orm.QuerierExecuter, provider string, providerIDs []string, cb func(*T)) error {
+	if len(providerIDs) == 0 {
+		return nil
+	}
+
 	var (
 		valueList = schema.ValueList(len(providerIDs), 2)
 		query     = fmt.Sprintf("WHERE provider = $1 AND provider_id NOT IN (%s)", valueList)
@@ -425,7 +429,8 @@ func (r *Repo) updateSubscriptionByProvider(s *Subscription) error {
 		return err
 	}
 
-	if err := orm.Update(r.db, s, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID); err != nil {
+	s.ID = prev.ID // the id can't change
+	if err := orm.UpdateByID(r.db, s); err != nil {
 		return err
 	}
 
@@ -434,7 +439,11 @@ func (r *Repo) updateSubscriptionByProvider(s *Subscription) error {
 }
 
 func (r *Repo) removeSubscriptionByProvider(s *Subscription) error {
-	if err := orm.Remove(r.db, s, "WHERE provider = $1 AND provider_id = $2", s.Provider, s.ProviderID); err != nil {
+	table := s.TableName()
+	cols := orm.Columns(s).List()
+	sql := fmt.Sprintf("DELETE FROM %s WHERE provider = $1 AND provider_id = $2 RETURNING %s", table, cols)
+
+	if err := orm.QueryRow(r.db, s, sql, s.Provider, s.ProviderID); err != nil {
 		return err
 	}
 
@@ -505,12 +514,32 @@ func (r *Repo) addWebhookEvent(e *WebhookEvent) error {
 	return orm.Add(r.db, e)
 }
 
+func (r *Repo) GetPlanByPriceID(priceID int64) (*Plan, error) {
+	var p Plan
+
+	sql := fmt.Sprintf("SELECT %s FROM %s p INNER JOIN %s pr ON pr.plan_id = p.id where pr.id = $1",
+		orm.Columns(&p).PrefixedList("p"),
+		p.TableName(),
+		orm.TableName(&Price{}),
+	)
+
+	if err := orm.QueryRow(r.db, &p, sql, priceID); err != nil {
+		return nil, err
+	}
+
+	return &p, nil
+}
+
 func (r *Repo) GetPlanBySubscriptionID(subID int64) (*Plan, error) {
+	if subID == 0 {
+		return nil, errors.New("error: zero is not a valid id")
+	}
+
 	var p Plan
 
 	sql := fmt.Sprintf("SELECT %s FROM %s p INNER JOIN %s pr ON pr.plan_id = p.id INNER JOIN %s s ON s.price_id = pr.id WHERE s.id = $1",
 		orm.Columns(&p).PrefixedList("p"),
-		orm.TableName(&p),
+		p.TableName(),
 		orm.TableName(&Price{}),
 		orm.TableName(&Subscription{}),
 	)
