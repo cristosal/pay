@@ -4,6 +4,8 @@ type events struct {
 	subAddedCallbacks        []func(*Subscription)
 	subUpdatedCallbacks      []func(*Subscription, *Subscription)
 	subRemovedCallbacks      []func(*Subscription)
+	seatAddedCallbacks       []func(*Subscription, string)
+	seatRemovedCallbacks     []func(*Subscription, string)
 	customerAddedCallbacks   []func(*Customer)
 	customerUpdatedCallbacks []func(*Customer, *Customer)
 	customerRemovedCallbacks []func(*Customer)
@@ -13,6 +15,14 @@ type events struct {
 	priceAddedCallbacks      []func(*Price)
 	priceUpdatedCallbacks    []func(*Price, *Price)
 	priceRemovedCallbacks    []func(*Price)
+}
+
+func (e *events) OnSeatAdded(cb func(*Subscription, string)) {
+	e.seatAddedCallbacks = append(e.seatAddedCallbacks, cb)
+}
+
+func (e *events) OnSeatRemoved(cb func(*Subscription, string)) {
+	e.seatRemovedCallbacks = append(e.seatRemovedCallbacks, cb)
 }
 
 func (e *events) OnSubscriptionAdded(cb func(*Subscription)) {
@@ -132,5 +142,17 @@ func (e *events) priceUpdated(prev *Price, s *Price) {
 func (e *events) priceRemoved(c *Price) {
 	for _, cb := range e.priceRemovedCallbacks {
 		cb(c)
+	}
+}
+
+func (e *events) seatAdded(s *Subscription, seat string) {
+	for _, cb := range e.seatAddedCallbacks {
+		cb(s, seat)
+	}
+}
+
+func (e *events) seatRemoved(s *Subscription, seat string) {
+	for _, cb := range e.seatRemovedCallbacks {
+		cb(s, seat)
 	}
 }

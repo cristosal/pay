@@ -621,12 +621,27 @@ func (r *Repo) AddSubscriptionUser(su *SubscriptionUser) error {
 		return err
 	}
 
-	return orm.Add(r.db, su)
+	if err := orm.Add(r.db, su); err != nil {
+		return err
+	}
+
+	r.seatAdded(&s, su.Username)
+	return nil
 }
 
 func (r *Repo) RemoveSubscriptionUser(su *SubscriptionUser) error {
-	return orm.Remove(r.db, su, "WHERE subscription_id = $1 and username = $2",
-		su.SubscriptionID, su.Username)
+	var s Subscription
+	s.ID = su.SubscriptionID
+	if err := orm.GetByID(r.db, &s); err != nil {
+		return err
+	}
+
+	if err := orm.Remove(r.db, su, "WHERE subscription_id = $1 and username = $2", su.SubscriptionID, su.Username); err != nil {
+		return err
+	}
+
+	r.seatRemoved(&s, su.Username)
+	return nil
 }
 
 // ListUsername returns a list of all usernames attached to subscription
